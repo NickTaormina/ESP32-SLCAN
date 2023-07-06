@@ -80,7 +80,7 @@ void app_main()
     slcan_init();
 
     // Create the twai and slcan tasks
-    xTaskCreate(can_task, "can_task", 2048, NULL, 10, NULL);
-    xTaskCreate(slcan_task, "slcan_task", 4096, NULL, 10, NULL);
+    xTaskCreate(can_task, "can_task", 4096, NULL, 10, NULL);
+    xTaskCreate(slcan_task, "slcan_task", 4096, NULL, 9, NULL);
     ESP_LOGI("MAIN", "Setup finished");
 }

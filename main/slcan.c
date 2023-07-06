@@ -90,7 +90,7 @@ void slcan_task(void *pvParameters)
         {
             // get the message from the queue
             twai_message_t message;
-            xQueueReceive(can_receive_queue, &message, 0);
+            xQueueReceive(can_receive_queue, &message, 10);
             // send the message to be processed into slcan format
             slcan_receiveFrame(message);
         }
@@ -102,9 +102,9 @@ void slcan_task(void *pvParameters)
             // get the message from the queue
             uint8_t message[2 * RX_BUF_SIZE];
             memset(message, 0, 2 * RX_BUF_SIZE);
-            xQueueReceive(serial_out_queue, message, 0);
+            xQueueReceive(serial_out_queue, message, 10);
             // send the message to the serial port
-            usb_serial_jtag_ll_write_txfifo(message, strlen((const char *)message));
+            usb_serial_jtag_ll_write_txfifo(&message, strlen((const char *)message));
             usb_serial_jtag_ll_txfifo_flush();
             slcan_ack();
         }
@@ -116,7 +116,7 @@ void slcan_task(void *pvParameters)
             // get the message from the queue
             uint8_t message[2 * RX_BUF_SIZE];
             memset(message, 0, 2 * RX_BUF_SIZE);
-            xQueueReceive(serial_in_queue, message, 0);
+            xQueueReceive(serial_in_queue, message, 10);
             // process the message
             processSlCommand(message);
         }
@@ -205,6 +205,7 @@ char can_frame_buffer[CAN_FRAME_BUFFER_SIZE];
 // Process a received CAN frame into slcan format
 void slcan_receiveFrame(twai_message_t message)
 {
+    ESP_LOGI("SLCAN", "Received CAN message: %03X", message.identifier);
     // Create a string representation of the CAN frame data using snprintf
     int len = snprintf(can_frame_buffer, CAN_FRAME_BUFFER_SIZE, "t%03X%01X", message.identifier, message.data_length_code);
     for (int i = 0; i < message.data_length_code; i++)
@@ -213,7 +214,7 @@ void slcan_receiveFrame(twai_message_t message)
     }
 
     // Print the CAN frame data to the log
-    xQueueSend(serial_out_queue, can_frame_buffer, 0);
+    xQueueSend(serial_out_queue, can_frame_buffer, 10);
 
     // slcan_ack();
 }
