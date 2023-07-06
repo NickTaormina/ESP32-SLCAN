@@ -25,7 +25,10 @@ extern TaskHandle_t readHandle;
 
 bool busIsRunning;
 
+// rtos
 void slcan_init(void);
+void slcan_task(void *pvParameters);
+
 void slcan_ack();
 void slcan_nack();
 void slcan_receiveFrame(twai_message_t message);

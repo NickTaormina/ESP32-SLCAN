@@ -5,6 +5,7 @@
 #include "driver/twai.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
+#include "esp_log.h"
 
 #define CAN_TX_GPIO GPIO_NUM_9
 #define CAN_RX_GPIO GPIO_NUM_8

@@ -21,6 +21,29 @@ void slcan_init(void)
     can_init(500000);
 }
 
+void slcan_task(void *pvParameters)
+{
+
+    while (1)
+    {
+        // read the serial port
+        int len = 0;
+        // int len = uart_read_bytes(UART_NUM_0, rx_buffer, RX_BUF_SIZE, 100);
+        if (len > 0)
+        {
+            // store the message in case it is incomplete
+            // look for the end of the message
+            // if the message is complete, send it to the queue
+        }
+
+        // process any messages in the serial in queue
+        // if anything in queue, send to the process function
+
+        // process any messages in the serial out queue
+        //  if anything in queue, send to the serial port
+    }
+}
+
 void slcan_close(void)
 {
     printf("close driver");

@@ -78,8 +78,8 @@ void app_main()
 {
     can_send_queue = xQueueCreate(10, sizeof(twai_message_t));
     can_receive_queue = xQueueCreate(10, sizeof(twai_message_t));
-    serial_in_queue = xQueueCreate(10, sizeof(uint8_t *));
-    serial_out_queue = xQueueCreate(10, sizeof(uint8_t *));
+    serial_in_queue = xQueueCreate(10, 16 * sizeof(uint8_t *));
+    serial_out_queue = xQueueCreate(10, 16 * sizeof(uint8_t *));
     // start the CAN driver
     slcan_init();
 
