@@ -75,16 +75,14 @@ void slcan_task(void *pvParameters)
             }
         }
 
-        // process any messages in the serial in queue
-        // if anything in queue, send to the process function
-        if (uxQueueMessagesWaiting(serial_in_queue) > 0)
+        // process any messages in the can receive queue
+        if (uxQueueMessagesWaiting(can_receive_queue) > 0)
         {
             // get the message from the queue
-            uint8_t message[2 * RX_BUF_SIZE];
-            memset(message, 0, 2 * RX_BUF_SIZE);
-            xQueueReceive(serial_in_queue, message, 0);
-            // process the message
-            processSlCommand(message);
+            twai_message_t message;
+            xQueueReceive(can_receive_queue, &message, 0);
+            // send the message to be processed into slcan format
+            slcan_receiveFrame(message);
         }
 
         // process any messages in the serial out queue
@@ -97,6 +95,19 @@ void slcan_task(void *pvParameters)
             xQueueReceive(serial_out_queue, message, 0);
             // send the message to the serial port
             uart_write_bytes(UART_NUM_0, (const char *)message, strlen((const char *)message));
+            slcan_ack();
+        }
+
+        // process any messages in the serial in queue
+        // if anything in queue, send to the process function
+        if (uxQueueMessagesWaiting(serial_in_queue) > 0)
+        {
+            // get the message from the queue
+            uint8_t message[2 * RX_BUF_SIZE];
+            memset(message, 0, 2 * RX_BUF_SIZE);
+            xQueueReceive(serial_in_queue, message, 0);
+            // process the message
+            processSlCommand(message);
         }
     }
 }
@@ -165,8 +176,10 @@ void send_can(uint8_t *bytes)
             }
 
             // sends the frame
-            if (twai_transmit(&msg, 20 / portTICK_PERIOD_MS) == ESP_OK)
+            if (write_can_message(msg) != true)
             {
+                // print noack or something
+                ESP_LOGE("SLCAN", "Failed to send CAN message");
             };
         }
         else
@@ -177,6 +190,7 @@ void send_can(uint8_t *bytes)
 // Create a buffer to hold the string representation of the CAN frame data
 #define CAN_FRAME_BUFFER_SIZE 32
 char can_frame_buffer[CAN_FRAME_BUFFER_SIZE];
+// Process a received CAN frame into slcan format
 void slcan_receiveFrame(twai_message_t message)
 {
     // Create a string representation of the CAN frame data using snprintf
@@ -187,7 +201,7 @@ void slcan_receiveFrame(twai_message_t message)
     }
 
     // Print the CAN frame data to the log
-    printf("%s\r", can_frame_buffer);
+    xQueueSend(serial_out_queue, can_frame_buffer, 0);
 
     // slcan_ack();
 }
