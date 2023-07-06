@@ -50,22 +50,22 @@ void can_init(int bitrate)
     ESP_LOGI("MAIN", "CAN configs initialized");
     if (twai_driver_install(&g_config, &t_config, &f_config) == ESP_OK)
     {
-        printf("CAN Driver installed\n");
+        ESP_LOGI("CAN", "CAN Driver installed\n");
     }
     else
     {
-        printf("Failed to install driver\n");
+        ESP_LOGE("CAN", "Failed to install driver\n");
         return;
     }
 
     // Start TWAI driver
     if (twai_start() == ESP_OK)
     {
-        printf("CAN Driver started\n");
+        ESP_LOGI("CAN", "CAN Driver started");
     }
     else
     {
-        printf("Failed to start driver\n");
+        ESP_LOGE("CAN", "Failed to start driver\n");
         return;
     }
 }

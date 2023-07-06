@@ -84,7 +84,6 @@ void slcan_task(void *pvParameters)
                     }
                 }
             }
-            vTaskDelay(10 / portTICK_PERIOD_MS);
         }
         // process any messages in the can received queue. These need to be printed to the serial port
         if (uxQueueMessagesWaiting(can_receive_queue) > 0)
@@ -121,7 +120,8 @@ void slcan_task(void *pvParameters)
             // process the message
             processSlCommand(message);
         }
-        }
+        vTaskDelay(10 / portTICK_PERIOD_MS);
+    }
 }
 
 void slcan_close(void)
