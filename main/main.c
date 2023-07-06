@@ -8,9 +8,8 @@
 #include "freertos/queue.h"
 #include "slcan.h"
 #include <stdio.h>
-
-QueueHandle_t canQueue;
-QueueHandle_t commandQueue;
+#include "queue_manager.h"
+#include "can.h"
 
 // receives CAN messages and places them into the queue
 void twai_receive_task(void *arg)
@@ -77,9 +76,14 @@ void transmitMessageToSerial(void *parameters)
 
 void app_main()
 {
+    can_send_queue = xQueueCreate(10, sizeof(twai_message_t));
+    can_receive_queue = xQueueCreate(10, sizeof(twai_message_t));
+    serial_in_queue = xQueueCreate(10, sizeof(uint8_t *));
+    serial_out_queue = xQueueCreate(10, sizeof(uint8_t *));
     // start the CAN driver
     slcan_init();
-    // Create a task that will receive and print the twai messages
+
+    // Create the twai and slcan tasks
     xTaskCreate(twai_receive_task, "twai receive", 2048, NULL, 5, NULL);
-    ESP_LOGI("MAIN", "CAN receive task created");
+    ESP_LOGI("MAIN", "Setup finished");
 }

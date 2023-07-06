@@ -1,5 +1,9 @@
 #include "slcan.h"
 
+// define the queues
+QueueHandle_t serial_in_queue;
+QueueHandle_t serial_out_queue;
+
 void slcan_ack()
 {
     printf("\r");
@@ -13,36 +17,8 @@ void slcan_nack()
 
 void slcan_init(void)
 {
-    ESP_LOGI("MAIN", "Initializing CAN bus");
-    twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT(SL_CAN_TX_GPIO, SL_CAN_RX_GPIO, TWAI_MODE_NORMAL);
-    g_config.rx_queue_len = 500;
-    g_config.intr_flags = ESP_INTR_FLAG_IRAM;
-    twai_timing_config_t t_config = TWAI_TIMING_CONFIG_500KBITS();
-    twai_filter_config_t f_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
-    ESP_LOGI("MAIN", "CAN configs initialized");
 
-    // Install TWAI driver
-    if (twai_driver_install(&g_config, &t_config, &f_config) == ESP_OK)
-    {
-        printf("CAN Driver installed\n");
-    }
-    else
-    {
-        printf("Failed to install driver\n");
-        return;
-    }
-
-    // Start TWAI driver
-    if (twai_start() == ESP_OK)
-    {
-        printf("CAN Driver started\n");
-        busIsRunning = true;
-    }
-    else
-    {
-        printf("Failed to start driver\n");
-        return;
-    }
+    can_init(500000);
 }
 
 void slcan_close(void)

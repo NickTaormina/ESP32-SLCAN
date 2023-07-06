@@ -8,9 +8,8 @@
 #include "freertos/queue.h"
 #include "string.h"
 #include "stdlib.h"
-
-#define SL_CAN_TX_GPIO GPIO_NUM_9
-#define SL_CAN_RX_GPIO GPIO_NUM_8
+#include "can.h"
+#include "queue_manager.h"
 
 #define SLCAN_CR '\r'
 #define SLCAN_BEL '\a'
@@ -23,9 +22,6 @@
 #define SLCAN_FRAME_DATA_OFFSET 5
 
 extern TaskHandle_t readHandle;
-
-extern QueueHandle_t canQueue;
-extern QueueHandle_t commandQueue;
 
 bool busIsRunning;
 
