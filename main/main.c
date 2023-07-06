@@ -22,11 +22,15 @@ void twai_receive_task(void *arg)
         // Receive twai message and wait for a maximum of 1 second until a message is received
         if (twai_receive(&message, 100) == ESP_OK)
         {
-            if (message.identifier == 0x7E8)
+            if (message.identifier == 0x7E8 || message.identifier == 0x7DF)
             {
                 // Print the received message
                 printf("t/");
                 printf("%03X", message.identifier);
+                for (int i = 0; i < message.data_length_code; i++)
+                {
+                    printf("%02X", message.data[i]);
+                }
             }
         }
         else
@@ -39,14 +43,10 @@ void twai_receive_task(void *arg)
             twai_message_t obdMsg;
             obdMsg.identifier = 0x7DF;
             obdMsg.data_length_code = 8;
-            obdMsg.data[0] = 0x02;
-            obdMsg.data[1] = 0x01;
+            obdMsg.data[0] = 0x01;
+            obdMsg.data[1] = 0x03;
             obdMsg.data[2] = 0x00;
-            obdMsg.data[3] = 0x00;
-            obdMsg.data[4] = 0x00;
-            obdMsg.data[5] = 0x00;
-            obdMsg.data[6] = 0x00;
-            obdMsg.data[7] = 0x00;
+
             esp_err_t err = twai_transmit(&obdMsg, 1000);
             if (err != ESP_OK)
             {
@@ -55,6 +55,13 @@ void twai_receive_task(void *arg)
             else
             {
                 ESP_LOGI("MAIN", "Message transmitted");
+                printf("t/");
+                printf("%03X", obdMsg.identifier);
+                for (int i = 0; i < obdMsg.data_length_code; i++)
+                {
+                    printf("%02X", obdMsg.data[i]);
+                }
+                printf("\n");
             }
             counter = 0;
         }
