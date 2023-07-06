@@ -8,7 +8,7 @@
   },
   "idf.espIdfPathWin": "C:\\Users\\admin\\esp\\esp-idf",
   "idf.openOcdConfigs": ["board/esp32c3-builtin.cfg"],
-  "idf.portWin": "COM5",
+  "idf.portWin": "COM15",
   "idf.pythonBinPathWin": "C:\\Users\\admin\\.espressif\\python_env\\idf4.4_py3.8_env\\Scripts\\python.exe",
   "idf.toolsPathWin": "C:\\Users\\admin\\.espressif",
   "idf.flashType": "UART"
