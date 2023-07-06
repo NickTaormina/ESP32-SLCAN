@@ -33,7 +33,7 @@ void slcan_task(void *pvParameters)
     int rxStoreLen = 0;
     while (1)
     {
-        // read the serial port
+        // read the serial port inputs for commands
         msgLen = uart_read_bytes(UART_NUM_0, rx_buffer, RX_BUF_SIZE, 100);
         if (msgLen > 0)
         {
@@ -75,7 +75,7 @@ void slcan_task(void *pvParameters)
             }
         }
 
-        // process any messages in the can receive queue
+        // process any messages in the can received queue. These need to be printed to the serial port
         if (uxQueueMessagesWaiting(can_receive_queue) > 0)
         {
             // get the message from the queue
@@ -86,7 +86,7 @@ void slcan_task(void *pvParameters)
         }
 
         // process any messages in the serial out queue
-        //  if anything in queue, send to the serial port
+        //  if anything is in queue, send it out the serial port
         if (uxQueueMessagesWaiting(serial_out_queue) > 0)
         {
             // get the message from the queue
@@ -99,7 +99,7 @@ void slcan_task(void *pvParameters)
         }
 
         // process any messages in the serial in queue
-        // if anything in queue, send to the process function
+        // if anything is in queue, send to the slcan process function
         if (uxQueueMessagesWaiting(serial_in_queue) > 0)
         {
             // get the message from the queue
