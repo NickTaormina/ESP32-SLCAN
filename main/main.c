@@ -69,21 +69,18 @@ void twai_receive_task(void *arg)
     }
 }
 
-// takes the can messages from queue and prints to usb serial
-void transmitMessageToSerial(void *parameters)
-{
-}
-
 void app_main()
 {
     can_send_queue = xQueueCreate(10, sizeof(twai_message_t));
     can_receive_queue = xQueueCreate(10, sizeof(twai_message_t));
     serial_in_queue = xQueueCreate(10, 16 * sizeof(uint8_t *));
     serial_out_queue = xQueueCreate(10, 16 * sizeof(uint8_t *));
+
     // start the CAN driver
-    slcan_init();
+    // slcan_init();
 
     // Create the twai and slcan tasks
-    xTaskCreate(twai_receive_task, "twai receive", 2048, NULL, 5, NULL);
+    // xTaskCreate(can_task, "can_task", 2048, NULL, 10, NULL);
+    xTaskCreate(slcan_task, "slcan_task", 4096, NULL, 10, NULL);
     ESP_LOGI("MAIN", "Setup finished");
 }

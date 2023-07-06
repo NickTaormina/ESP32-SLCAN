@@ -1,18 +1,24 @@
 #include "slcan.h"
 
+#include "hal/usb_serial_jtag_ll.h"
+
 // define the queues
 QueueHandle_t serial_in_queue;
 QueueHandle_t serial_out_queue;
 
 void slcan_ack()
 {
-    printf("\r");
+    usb_serial_jtag_ll_write_txfifo((uint8_t *)"\r", 2);
+    usb_serial_jtag_ll_txfifo_flush();
+    // printf("\r");
     fflush(stdout);
 }
 void slcan_nack()
 {
-    printf("\a");
-    fflush(stdout);
+    // printf("\a");
+    usb_serial_jtag_ll_write_txfifo((uint8_t *)"\a", 2);
+    usb_serial_jtag_ll_txfifo_flush();
+    // fflush(stdout);
 }
 
 void slcan_init(void)
@@ -31,10 +37,15 @@ void slcan_task(void *pvParameters)
 
     int msgLen = 0;
     int rxStoreLen = 0;
+    ESP_LOGE("slcan", "slcan task started");
+
+    uint8_t *rxbf = (uint8_t *)malloc(128);
+
     while (1)
     {
         // read the serial port inputs for commands
-        msgLen = uart_read_bytes(UART_NUM_0, rx_buffer, RX_BUF_SIZE, 100);
+
+        msgLen = usb_serial_jtag_ll_read_rxfifo(rxbf, 128);
         if (msgLen > 0)
         {
             // store the message in case it is incomplete
@@ -73,8 +84,8 @@ void slcan_task(void *pvParameters)
                     }
                 }
             }
+            vTaskDelay(10 / portTICK_PERIOD_MS);
         }
-
         // process any messages in the can received queue. These need to be printed to the serial port
         if (uxQueueMessagesWaiting(can_receive_queue) > 0)
         {
@@ -94,7 +105,8 @@ void slcan_task(void *pvParameters)
             memset(message, 0, 2 * RX_BUF_SIZE);
             xQueueReceive(serial_out_queue, message, 0);
             // send the message to the serial port
-            uart_write_bytes(UART_NUM_0, (const char *)message, strlen((const char *)message));
+            usb_serial_jtag_ll_write_txfifo(message, strlen((const char *)message));
+            usb_serial_jtag_ll_txfifo_flush();
             slcan_ack();
         }
 
@@ -109,14 +121,14 @@ void slcan_task(void *pvParameters)
             // process the message
             processSlCommand(message);
         }
-    }
+        }
 }
 
 void slcan_close(void)
 {
     printf("close driver");
     busIsRunning = false;
-    vTaskSuspend(readHandle);
+    // vTaskSuspend(readHandle);
     twai_stop();
     twai_driver_uninstall();
 }
@@ -224,7 +236,7 @@ void processSlCommand(uint8_t *bytes)
     {
     case 'O':
         slcan_init();
-        vTaskResume(readHandle);
+        // vTaskResume(readHandle);
         break;
     case 'C':
         slcan_close();
