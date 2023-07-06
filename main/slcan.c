@@ -21,26 +21,83 @@ void slcan_init(void)
     can_init(500000);
 }
 
+// Define rx_buffer for serial in
+static uint8_t rx_buffer[RX_BUF_SIZE];
+static uint8_t rx_store[2 * RX_BUF_SIZE];
+
+// slcan task
 void slcan_task(void *pvParameters)
 {
 
+    int msgLen = 0;
+    int rxStoreLen = 0;
     while (1)
     {
         // read the serial port
-        int len = 0;
-        // int len = uart_read_bytes(UART_NUM_0, rx_buffer, RX_BUF_SIZE, 100);
-        if (len > 0)
+        msgLen = uart_read_bytes(UART_NUM_0, rx_buffer, RX_BUF_SIZE, 100);
+        if (msgLen > 0)
         {
             // store the message in case it is incomplete
+            if (rxStoreLen + msgLen <= (2 * RX_BUF_SIZE))
+            {
+                memcpy(rx_store + rxStoreLen, rx_buffer, msgLen);
+                rxStoreLen += msgLen;
+            }
+            else
+            {
+                // error
+            }
             // look for the end of the message
-            // if the message is complete, send it to the queue
+            for (int i = 0; i < rxStoreLen; i++)
+            {
+                if (rx_store[i] == SLCAN_CR)
+                {
+                    // if the message is complete and the buffer is empty, send it to the queue
+                    // and clear the buffer
+                    if (i == rxStoreLen - 1)
+                    {
+                        // send the message to the queue
+                        xQueueSend(serial_in_queue, rx_store, 0);
+                        // clear the message from the store
+                        memset(rx_store, 0, rxStoreLen);
+                        rxStoreLen = 0;
+                        break;
+                    }
+                    else // if the buffer is not empty, send the message to the queue and shift the buffer
+                    {
+                        xQueueSend(serial_in_queue, rx_store, i + 1);
+                        // store the rest of the message, shifted to the beginning of the buffer
+                        memcpy(rx_store, rx_store + i + 1, rxStoreLen - i - 1);
+                        rxStoreLen = rxStoreLen - i - 1;
+                        break;
+                    }
+                }
+            }
         }
 
         // process any messages in the serial in queue
         // if anything in queue, send to the process function
+        if (uxQueueMessagesWaiting(serial_in_queue) > 0)
+        {
+            // get the message from the queue
+            uint8_t message[2 * RX_BUF_SIZE];
+            memset(message, 0, 2 * RX_BUF_SIZE);
+            xQueueReceive(serial_in_queue, message, 0);
+            // process the message
+            processSlCommand(message);
+        }
 
         // process any messages in the serial out queue
         //  if anything in queue, send to the serial port
+        if (uxQueueMessagesWaiting(serial_out_queue) > 0)
+        {
+            // get the message from the queue
+            uint8_t message[2 * RX_BUF_SIZE];
+            memset(message, 0, 2 * RX_BUF_SIZE);
+            xQueueReceive(serial_out_queue, message, 0);
+            // send the message to the serial port
+            uart_write_bytes(UART_NUM_0, (const char *)message, strlen((const char *)message));
+        }
     }
 }
 

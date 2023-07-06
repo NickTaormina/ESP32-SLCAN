@@ -17,9 +17,10 @@
 #define SLCAN_FLAG 'F'
 #define SLCAN_TR11 't'
 #define SLCAN_TR29 'T'
-
 #define SLCAN_FRAME_LEN_OFFSET 4
 #define SLCAN_FRAME_DATA_OFFSET 5
+
+#define RX_BUF_SIZE 1024
 
 extern TaskHandle_t readHandle;
 
