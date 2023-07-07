@@ -7,7 +7,7 @@
 void can_task(void *pvParameters)
 {
     ESP_LOGE("CAN", "CAN task started");
-    twai_message_t receiveMsg;
+    twai_message_t *receiveMsg;
     twai_message_t sendMsg;
     while (1)
     {
@@ -22,26 +22,37 @@ void can_task(void *pvParameters)
             printf("bus not open");
         }
     }
-    char can_frame_buffer[32];
+    char *can_frame_buffer = malloc(32);
     // continuously check for received messages
     while (1)
     {
         // ESP_LOGI("CAN", "CAN task running");
         //  receive can messages
-        if (twai_receive(&receiveMsg, 1 / portTICK_PERIOD_MS) == ESP_OK)
+        receiveMsg = (twai_message_t *)malloc(sizeof(twai_message_t));
+        if (twai_receive(receiveMsg, 1 / portTICK_PERIOD_MS) == ESP_OK)
         {
             // push the received message to the queue
             // ESP_LOGI("CAN", "Received message");
-            int len = snprintf(can_frame_buffer, 32, "t%03X%01X", receiveMsg.identifier, receiveMsg.data_length_code);
-            for (int i = 0; i < receiveMsg.data_length_code; i++)
+            if (receiveMsg->identifier == 0x7E8)
             {
-                len += snprintf(can_frame_buffer + len, 32 - len, "%02X", receiveMsg.data[i]);
+                // ESP_LOGI("CAN", "Received OBD message");
+                // ESP_LOGI("CAN", "Message ID: %03X", receiveMsg->identifier);
+                // ESP_LOGI("CAN", "Message DLC: %d", receiveMsg->data_length_code);
+                // ESP_LOGI("CAN", "Message Data: %02X %02X %02X %02X %02X %02X %02X %02X", receiveMsg->data[0], receiveMsg->data[1], receiveMsg->data[2], receiveMsg->data[3], receiveMsg->data[4], receiveMsg->data[5], receiveMsg->data[6], receiveMsg->data[7]);
+
+                int len = snprintf(can_frame_buffer, 32, "t%03X%01X", receiveMsg->identifier, receiveMsg->data_length_code);
+                for (int i = 0; i < receiveMsg->data_length_code; i++)
+                {
+                    // ESP_LOGE("CAN", "Data byte: %02X", receiveMsg->data[i]);
+                    len += snprintf(can_frame_buffer + len, 32 - len, "%02X", receiveMsg->data[i]);
+                }
+                // len += snprintf(can_frame_buffer + len, 32 - len, "\r");
+                printf("%s\r", can_frame_buffer);
+                fflush(stdout);
+
+                // ESP_LOGI("CAN", "ligma");
             }
-            len += snprintf(can_frame_buffer + len, 32 - len, "\r");
-            // usb_serial_jtag_write_bytes((const void *)can_frame_buffer, strlen(can_frame_buffer), 10);
-            // usb_serial_jtag_ll_txfifo_flush();
-            printf("%s", can_frame_buffer);
-            fflush(stdout);
+
             // push_to_queue(can_receive_queue, &receiveMsg, 0);
             //   ESP_LOGI("CAN", "Pushed message to queue");
         }
@@ -50,12 +61,13 @@ void can_task(void *pvParameters)
             // ESP_LOGE("CAN", "No message received");
             //  send the slcan noack message (push bad frame to the queue or something)
         }
+        free(receiveMsg);
         // ESP_LOGI("CAN", "Checking for messages to send");
         //  pull messages from the queue and send them
         if (pull_from_queue(can_send_queue, &sendMsg, 0))
         {
             // ESP_LOGI("CAN", "Sending message");
-            if (twai_transmit(&sendMsg, 1 / portTICK_PERIOD_MS) != ESP_OK)
+            if (twai_transmit(&sendMsg, 5 / portTICK_PERIOD_MS) != ESP_OK)
             {
                 // ESP_LOGE("CAN", "Failed to send CAN message");
             }
@@ -100,7 +112,7 @@ void can_init(int bitrate)
 // sends the message to the TWAI
 bool write_can_message(twai_message_t message)
 {
-    if (twai_transmit(&message, portMAX_DELAY) == ESP_OK)
+    if (twai_transmit(&message, 2 / portTICK_PERIOD_MS) == ESP_OK)
     {
         return true;
     }

@@ -51,39 +51,41 @@ void slcan_task(void *pvParameters)
         msgLen = usb_serial_jtag_read_bytes(rxbf, 128, 0);
         if (msgLen > 0)
         {
-            ESP_LOGI("slcan", "Received message: %s", rxbf);
-            // store the message in case it is incomplete
+            // ESP_LOGI("slcan", "Received message: %s", rxbf);
+            //  store the message in case it is incomplete
             if (rxStoreLen + msgLen <= (2 * RX_BUF_SIZE))
             {
-                memcpy(rx_store + rxStoreLen, rx_buffer, msgLen);
+                memcpy(rx_store + rxStoreLen, rxbf, msgLen);
                 rxStoreLen += msgLen;
             }
             else
             {
-                // error
+                // ESP_LOGI("slcan", "Message too long");
             }
             // look for the end of the message
             for (int i = 0; i < rxStoreLen; i++)
             {
                 if (rx_store[i] == SLCAN_CR)
                 {
-                    // if the message is complete and the buffer is empty, send it to the queue
-                    // and clear the buffer
+                    // ESP_LOGI("slcan", "Found end of message");
+                    //  if the message is complete and the buffer is empty, send it to the queue
+                    //  and clear the buffer
                     if (i == rxStoreLen - 1)
                     {
                         // send the message to the queue
-                        xQueueSend(serial_in_queue, rx_store, 0);
-                        // clear the message from the store
+                        processSlCommand(rx_store);
+                        // xQueueSend(serial_in_queue, rx_store, 0);
+                        //  clear the message from the store
                         memset(rx_store, 0, rxStoreLen);
                         rxStoreLen = 0;
                         break;
                     }
                     else // if the buffer is not empty, send the message to the queue and shift the buffer
                     {
-                        xQueueSend(serial_in_queue, rx_store, i + 1);
-                        // store the rest of the message, shifted to the beginning of the buffer
-                        memcpy(rx_store, rx_store + i + 1, rxStoreLen - i - 1);
-                        rxStoreLen = rxStoreLen - i - 1;
+                        // xQueueSend(serial_in_queue, rx_store, i + 1);
+                        //  store the rest of the message, shifted to the beginning of the buffer
+                        // memcpy(rx_store, rx_store + i + 1, rxStoreLen - i - 1);
+                        // rxStoreLen = rxStoreLen - i - 1;
                         break;
                     }
                 }
