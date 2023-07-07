@@ -1,17 +1,17 @@
 #include "slcan.h"
 
 #include "hal/usb_serial_jtag_ll.h"
+#include "driver/usb_serial_jtag.h"
 
 // define the queues
-QueueHandle_t serial_in_queue;
-QueueHandle_t serial_out_queue;
+// QueueHandle_t serial_in_queue;
+// QueueHandle_t serial_out_queue;
 
 void slcan_ack()
 {
-    usb_serial_jtag_ll_write_txfifo((uint8_t *)"\r", 1);
-    usb_serial_jtag_ll_txfifo_flush();
-    // printf("\r");
-    // fflush(stdout);
+    // usb_serial_jtag_write_bytes((const void *)"\r", 1, 10);
+    //  printf("\r");
+    //  fflush(stdout);
 }
 void slcan_nack()
 {
@@ -48,7 +48,7 @@ void slcan_task(void *pvParameters)
     {
         // read the serial port inputs for commands
 
-        msgLen = usb_serial_jtag_ll_read_rxfifo(rxbf, 128);
+        msgLen = usb_serial_jtag_read_bytes(rxbf, 128, 0);
         if (msgLen > 0)
         {
             ESP_LOGI("slcan", "Received message: %s", rxbf);
@@ -89,28 +89,10 @@ void slcan_task(void *pvParameters)
                 }
             }
         }
-        // process any messages in the can received queue. These need to be printed to the serial port
-        if (uxQueueMessagesWaiting(can_receive_queue) > 0)
-        {
-
-            // get the message from the queue
-            twai_message_t message;
-            if (xQueueReceive(can_receive_queue, &message, 100))
-            {
-                if (first_can_message)
-                {
-                    first_can_message = false;
-                    continue;
-                }
-                // printf("received message");
-                slcan_receiveFrame(message);
-            }
-            // send the message to be processed into slcan format
-        }
 
         // process any messages in the serial out queue
         //  if anything is in queue, send it out the serial port
-        if (uxQueueMessagesWaiting(serial_out_queue) > 0)
+        /*if (uxQueueMessagesWaiting(serial_out_queue) > 0)
         {
             // get the message from the queue
             // printf("sending message");
@@ -128,7 +110,7 @@ void slcan_task(void *pvParameters)
             // send the message to the serial port
 
             free(message);
-        }
+        }*/
 
         // process any messages in the serial in queue
         // if anything is in queue, send to the slcan process function
@@ -141,7 +123,7 @@ void slcan_task(void *pvParameters)
             // process the message
             processSlCommand(message);
         }
-        vTaskDelay(1 / portTICK_PERIOD_MS);
+        vTaskDelay(5 / portTICK_PERIOD_MS);
     }
 }
 
@@ -234,10 +216,16 @@ void slcan_receiveFrame(twai_message_t message)
     {
         len += snprintf(can_frame_buffer + len, CAN_FRAME_BUFFER_SIZE - len, "%02X", message.data[i]);
     }
+    // len += snprintf(can_frame_buffer + len, CAN_FRAME_BUFFER_SIZE - len, "\r");
 
     // Print the CAN frame data to the log
-    xQueueSend(serial_out_queue, can_frame_buffer, 10);
-
+    // xQueueSend(serial_out_queue, can_frame_buffer, 10);
+    printf("%s\r", can_frame_buffer);
+    fflush(stdout);
+    // usb_serial_jtag_write_bytes((const void *)can_frame_buffer, strlen(can_frame_buffer), 20);
+    //  usb_serial_jtag_ll_txfifo_flush();
+    //  printf("%s\r", can_frame_buffer);
+    //  send_can((uint8_t *)can_frame_buffer);
     // slcan_ack();
 }
 

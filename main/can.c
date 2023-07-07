@@ -1,8 +1,8 @@
 #include "can.h"
 
 // define the queues
-QueueHandle_t can_send_queue;
-QueueHandle_t can_receive_queue;
+// QueueHandle_t can_send_queue;
+// QueueHandle_t can_receive_queue;
 
 void can_task(void *pvParameters)
 {
@@ -22,18 +22,28 @@ void can_task(void *pvParameters)
             printf("bus not open");
         }
     }
-
+    char can_frame_buffer[32];
     // continuously check for received messages
     while (1)
     {
         // ESP_LOGI("CAN", "CAN task running");
         //  receive can messages
-        if (twai_receive(&receiveMsg, 2 / portTICK_PERIOD_MS) == ESP_OK)
+        if (twai_receive(&receiveMsg, 1 / portTICK_PERIOD_MS) == ESP_OK)
         {
             // push the received message to the queue
             // ESP_LOGI("CAN", "Received message");
-            push_to_queue(can_receive_queue, &receiveMsg, 10 / portTICK_PERIOD_MS);
-            // ESP_LOGI("CAN", "Pushed message to queue");
+            int len = snprintf(can_frame_buffer, 32, "t%03X%01X", receiveMsg.identifier, receiveMsg.data_length_code);
+            for (int i = 0; i < receiveMsg.data_length_code; i++)
+            {
+                len += snprintf(can_frame_buffer + len, 32 - len, "%02X", receiveMsg.data[i]);
+            }
+            len += snprintf(can_frame_buffer + len, 32 - len, "\r");
+            // usb_serial_jtag_write_bytes((const void *)can_frame_buffer, strlen(can_frame_buffer), 10);
+            // usb_serial_jtag_ll_txfifo_flush();
+            printf("%s", can_frame_buffer);
+            fflush(stdout);
+            // push_to_queue(can_receive_queue, &receiveMsg, 0);
+            //   ESP_LOGI("CAN", "Pushed message to queue");
         }
         else
         {
@@ -42,19 +52,16 @@ void can_task(void *pvParameters)
         }
         // ESP_LOGI("CAN", "Checking for messages to send");
         //  pull messages from the queue and send them
-        if (pull_from_queue(can_send_queue, &sendMsg, 10 / portTICK_PERIOD_MS))
+        if (pull_from_queue(can_send_queue, &sendMsg, 0))
         {
-            if (write_can_message(sendMsg))
+            // ESP_LOGI("CAN", "Sending message");
+            if (twai_transmit(&sendMsg, 1 / portTICK_PERIOD_MS) != ESP_OK)
             {
-                // it worked
-            }
-            else
-            {
-                // it didn't work
+                // ESP_LOGE("CAN", "Failed to send CAN message");
             }
         }
 
-        vTaskDelay(1);
+        // vTaskDelay(1 / portTICK_RATE_MS);
     }
 }
 
