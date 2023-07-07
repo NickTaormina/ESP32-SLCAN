@@ -43,7 +43,7 @@ void slcan_task(void *pvParameters)
     usb_serial_jtag_ll_txfifo_flush();
 
     uint8_t *rxbf = (uint8_t *)malloc(128);
-
+    static bool first_can_message = true;
     while (1)
     {
         // read the serial port inputs for commands
@@ -92,10 +92,16 @@ void slcan_task(void *pvParameters)
         // process any messages in the can received queue. These need to be printed to the serial port
         if (uxQueueMessagesWaiting(can_receive_queue) > 0)
         {
+
             // get the message from the queue
             twai_message_t message;
             if (xQueueReceive(can_receive_queue, &message, 100))
             {
+                if (first_can_message)
+                {
+                    first_can_message = false;
+                    continue;
+                }
                 // printf("received message");
                 slcan_receiveFrame(message);
             }
@@ -113,11 +119,11 @@ void slcan_task(void *pvParameters)
             memset(message, 0, 2 * RX_BUF_SIZE);
             if (xQueueReceive(serial_out_queue, message, 100))
             {
-                // usb_serial_jtag_ll_write_txfifo(message, strlen((const char *)message));
-                // slcan_ack();
-                printf("%s", message);
-                fflush(stdout);
-                // usb_serial_jtag_ll_txfifo_flush();
+                usb_serial_jtag_ll_write_txfifo(message, strlen((const char *)message));
+                slcan_ack();
+                // printf("%s", message);
+                // fflush(stdout);
+                usb_serial_jtag_ll_txfifo_flush();
             }
             // send the message to the serial port
 
