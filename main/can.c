@@ -42,14 +42,6 @@ void can_task(void *pvParameters)
             // ESP_LOGI("CAN", "Received message");
             if (1)
             {
-                if (receiveMsg->identifier == 0x7E8)
-                {
-                    printf("t%03X%01X%02X%02X%02X%02X%02X%02X%02X%02X\n\r", receiveMsg->identifier, receiveMsg->data_length_code, receiveMsg->data[0], receiveMsg->data[1], receiveMsg->data[2], receiveMsg->data[3], receiveMsg->data[4], receiveMsg->data[5], receiveMsg->data[6], receiveMsg->data[7]);
-                    //  ESP_LOGE("CAN", "Received OBD message");
-                    //  ESP_LOGI("CAN", "Message ID: %03X", receiveMsg->identifier);
-                    //  ESP_LOGI("CAN", "Message DLC: %d", receiveMsg->data_length_code);
-                    //  ESP_LOGI("CAN", "Message Data: %02X %02X %02X %02X %02X %02X %02X %02X", receiveMsg->data[0], receiveMsg->data[1], receiveMsg->data[2], receiveMsg->data[3], receiveMsg->data[4], receiveMsg->data[5], receiveMsg->data[6], receiveMsg->data[7]);
-                }
                 // ESP_LOGI("CAN", "Received OBD message");
 
                 // len += snprintf(can_frame_buffer + len, 32 - len, "\r");
@@ -116,7 +108,7 @@ bool write_can_message(twai_message_t message)
     if (twai_transmit(&message, 999) == ESP_OK)
     {
         // esp_restart();
-        ESP_LOGE("CAN", "Sent CAN message: %03X %02X %02X %02X %02X", message.identifier, message.data[0], message.data[1], message.data[2], message.data[3]);
+        // ESP_LOGE("CAN", "Sent CAN message: %03X %02X %02X %02X %02X", message.identifier, message.data[0], message.data[1], message.data[2], message.data[3]);
         return true;
     }
     else

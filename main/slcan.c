@@ -175,31 +175,31 @@ void slcan_task(void *pvParameters)
             {
                 memcpy(rx_store + rxStoreLen, rxbf, msgLen);
                 rxStoreLen += msgLen;
-                write_file("/spiffs/CAN.TXT", (char *)rx_store);
+                for (int i = 0; i < rxStoreLen; i++)
+                {
+                    if (rx_store[i] == SLCAN_CR)
+                    {
+                        // ESP_LOGI("slcan", "Found end of message");
+                        //  if the message is complete and the buffer is empty, send it to the queue
+                        //  and clear the buffer
+
+                        // send the message to the queue
+
+                        processSlCommand(rx_store);
+                        // ESP_LOGE("slcan", "Received message: %s", (char *)rx_store);
+                        //  xQueueSend(serial_in_queue, rx_store, 0);
+                        //   clear the message from the store
+                        memset(rx_store, 0, rxStoreLen);
+                        rxStoreLen = 0;
+                    }
+                }
+                // write_file("/spiffs/CAN.TXT", (char *)rx_store);
             }
             else
             {
                 // ESP_LOGI("slcan", "Message too long");
             }
             // look for the end of the message
-            for (int i = 0; i < rxStoreLen; i++)
-            {
-                if (rx_store[i] == SLCAN_CR)
-                {
-                    // ESP_LOGI("slcan", "Found end of message");
-                    //  if the message is complete and the buffer is empty, send it to the queue
-                    //  and clear the buffer
-
-                    // send the message to the queue
-
-                    processSlCommand(rx_store);
-                    // ESP_LOGE("slcan", "Received message: %s", (char *)rx_store);
-                    //  xQueueSend(serial_in_queue, rx_store, 0);
-                    //   clear the message from the store
-                    memset(rx_store, 0, rxStoreLen);
-                    rxStoreLen = 0;
-                }
-            }
         }
 
         // process any messages in the serial out queue
@@ -235,7 +235,7 @@ void slcan_task(void *pvParameters)
             // process the message
             processSlCommand(message);
         }*/
-        vTaskDelay(5 / portTICK_PERIOD_MS);
+        vTaskDelay(2 / portTICK_PERIOD_MS);
     }
 }
 
