@@ -33,7 +33,7 @@ void can_task(void *pvParameters)
         {
             // push the received message to the queue
             // ESP_LOGI("CAN", "Received message");
-            if (receiveMsg->identifier == 0x7E8)
+            if (1)
             {
                 // ESP_LOGI("CAN", "Received OBD message");
                 // ESP_LOGI("CAN", "Message ID: %03X", receiveMsg->identifier);
@@ -48,7 +48,9 @@ void can_task(void *pvParameters)
                 }
                 // len += snprintf(can_frame_buffer + len, 32 - len, "\r");
                 printf("%s\r", can_frame_buffer);
+                // printf("\n");
                 fflush(stdout);
+                fflush(stderr);
 
                 // ESP_LOGI("CAN", "ligma");
             }
