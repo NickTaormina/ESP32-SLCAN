@@ -6,29 +6,43 @@ QueueHandle_t can_receive_queue;
 
 void can_task(void *pvParameters)
 {
+    ESP_LOGE("CAN", "CAN task started");
     twai_message_t receiveMsg;
     twai_message_t sendMsg;
+    while (1)
+    {
+        twai_status_info_t test;
+        twai_get_status_info(&test);
+        if (test.state == TWAI_STATE_RUNNING)
+        {
+            break;
+        }
+        else
+        {
+            printf("bus not open");
+        }
+    }
 
     // continuously check for received messages
     while (1)
     {
         // ESP_LOGI("CAN", "CAN task running");
         //  receive can messages
-        if (twai_receive(&receiveMsg, portMAX_DELAY) == ESP_OK)
+        if (twai_receive(&receiveMsg, 2 / portTICK_PERIOD_MS) == ESP_OK)
         {
             // push the received message to the queue
             // ESP_LOGI("CAN", "Received message");
-            push_to_queue(can_receive_queue, &receiveMsg, 10);
+            push_to_queue(can_receive_queue, &receiveMsg, 10 / portTICK_PERIOD_MS);
             // ESP_LOGI("CAN", "Pushed message to queue");
         }
         else
         {
-            ESP_LOGE("CAN", "No message received");
-            // send the slcan noack message (push bad frame to the queue or something)
+            // ESP_LOGE("CAN", "No message received");
+            //  send the slcan noack message (push bad frame to the queue or something)
         }
         // ESP_LOGI("CAN", "Checking for messages to send");
         //  pull messages from the queue and send them
-        if (pull_from_queue(can_send_queue, &sendMsg, 5))
+        if (pull_from_queue(can_send_queue, &sendMsg, 10 / portTICK_PERIOD_MS))
         {
             if (write_can_message(sendMsg))
             {
@@ -39,7 +53,7 @@ void can_task(void *pvParameters)
                 // it didn't work
             }
         }
-        // ESP_LOGI("CAN", "Done checking for messages to send");
+
         vTaskDelay(1);
     }
 }

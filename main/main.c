@@ -71,16 +71,21 @@ void twai_receive_task(void *arg)
 
 void app_main()
 {
+    setvbuf(stdout, NULL, _IONBF, 0);
+    setbuf(stdout, NULL);
+
     can_send_queue = xQueueCreate(10, sizeof(twai_message_t));
     can_receive_queue = xQueueCreate(10, sizeof(twai_message_t));
-    serial_in_queue = xQueueCreate(10, 16 * sizeof(uint8_t *));
-    serial_out_queue = xQueueCreate(10, 16 * sizeof(uint8_t *));
+    serial_in_queue = xQueueCreate(10, 20 * sizeof(uint8_t *));
+    serial_out_queue = xQueueCreate(10, 20 * sizeof(uint8_t *));
+    vTaskDelay(1 / portTICK_PERIOD_MS);
 
     // start the CAN driver
     slcan_init();
 
     // Create the twai and slcan tasks
-    xTaskCreate(can_task, "can_task", 4096, NULL, 10, NULL);
     xTaskCreate(slcan_task, "slcan_task", 4096, NULL, 9, NULL);
+    xTaskCreate(can_task, "can_task", 4096, NULL, 10, NULL);
+
     ESP_LOGI("MAIN", "Setup finished");
 }

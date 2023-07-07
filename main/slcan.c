@@ -8,15 +8,15 @@ QueueHandle_t serial_out_queue;
 
 void slcan_ack()
 {
-    usb_serial_jtag_ll_write_txfifo((uint8_t *)"\r", 2);
+    usb_serial_jtag_ll_write_txfifo((uint8_t *)"\r", 1);
     usb_serial_jtag_ll_txfifo_flush();
     // printf("\r");
-    fflush(stdout);
+    // fflush(stdout);
 }
 void slcan_nack()
 {
     // printf("\a");
-    usb_serial_jtag_ll_write_txfifo((uint8_t *)"\a", 2);
+    usb_serial_jtag_ll_write_txfifo((uint8_t *)"\a", 1);
     usb_serial_jtag_ll_txfifo_flush();
     // fflush(stdout);
 }
@@ -38,6 +38,9 @@ void slcan_task(void *pvParameters)
     int msgLen = 0;
     int rxStoreLen = 0;
     ESP_LOGE("slcan", "slcan task started");
+    usb_serial_jtag_ll_txfifo_flush();
+    usb_serial_jtag_ll_write_txfifo((uint8_t *)"slcan\n", 6);
+    usb_serial_jtag_ll_txfifo_flush();
 
     uint8_t *rxbf = (uint8_t *)malloc(128);
 
@@ -48,6 +51,7 @@ void slcan_task(void *pvParameters)
         msgLen = usb_serial_jtag_ll_read_rxfifo(rxbf, 128);
         if (msgLen > 0)
         {
+            ESP_LOGI("slcan", "Received message: %s", rxbf);
             // store the message in case it is incomplete
             if (rxStoreLen + msgLen <= (2 * RX_BUF_SIZE))
             {
@@ -90,9 +94,12 @@ void slcan_task(void *pvParameters)
         {
             // get the message from the queue
             twai_message_t message;
-            xQueueReceive(can_receive_queue, &message, 10);
+            if (xQueueReceive(can_receive_queue, &message, 100))
+            {
+                // printf("received message");
+                slcan_receiveFrame(message);
+            }
             // send the message to be processed into slcan format
-            slcan_receiveFrame(message);
         }
 
         // process any messages in the serial out queue
@@ -100,13 +107,21 @@ void slcan_task(void *pvParameters)
         if (uxQueueMessagesWaiting(serial_out_queue) > 0)
         {
             // get the message from the queue
-            uint8_t message[2 * RX_BUF_SIZE];
+            // printf("sending message");
+            uint8_t *message = (uint8_t *)malloc(2 * RX_BUF_SIZE);
+            // uint8_t message[2 * RX_BUF_SIZE];
             memset(message, 0, 2 * RX_BUF_SIZE);
-            xQueueReceive(serial_out_queue, message, 10);
+            if (xQueueReceive(serial_out_queue, message, 100))
+            {
+                // usb_serial_jtag_ll_write_txfifo(message, strlen((const char *)message));
+                // slcan_ack();
+                printf("%s", message);
+                fflush(stdout);
+                // usb_serial_jtag_ll_txfifo_flush();
+            }
             // send the message to the serial port
-            usb_serial_jtag_ll_write_txfifo(&message, strlen((const char *)message));
-            usb_serial_jtag_ll_txfifo_flush();
-            slcan_ack();
+
+            free(message);
         }
 
         // process any messages in the serial in queue
@@ -120,7 +135,7 @@ void slcan_task(void *pvParameters)
             // process the message
             processSlCommand(message);
         }
-        vTaskDelay(10 / portTICK_PERIOD_MS);
+        vTaskDelay(1 / portTICK_PERIOD_MS);
     }
 }
 
@@ -205,8 +220,9 @@ char can_frame_buffer[CAN_FRAME_BUFFER_SIZE];
 // Process a received CAN frame into slcan format
 void slcan_receiveFrame(twai_message_t message)
 {
-    ESP_LOGI("SLCAN", "Received CAN message: %03X", message.identifier);
-    // Create a string representation of the CAN frame data using snprintf
+    // ESP_LOGI("SLCAN", "Received CAN message: %03X", message.identifier);
+    //  Create a string representation of the CAN frame data using snprintf
+    // printf("receiveframe");
     int len = snprintf(can_frame_buffer, CAN_FRAME_BUFFER_SIZE, "t%03X%01X", message.identifier, message.data_length_code);
     for (int i = 0; i < message.data_length_code; i++)
     {
