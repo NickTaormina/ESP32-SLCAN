@@ -3,6 +3,13 @@
 // define the queues
 // QueueHandle_t can_send_queue;
 // QueueHandle_t can_receive_queue;
+#include "esp_err.h"
+#include "esp_log.h"
+#include "esp_spiffs.h"
+#include "stdio.h"
+#include "string.h"
+
+#define TAG "SPIFFS"
 
 void can_task(void *pvParameters)
 {
@@ -35,19 +42,18 @@ void can_task(void *pvParameters)
             // ESP_LOGI("CAN", "Received message");
             if (1)
             {
-                // ESP_LOGI("CAN", "Received OBD message");
-                // ESP_LOGI("CAN", "Message ID: %03X", receiveMsg->identifier);
-                // ESP_LOGI("CAN", "Message DLC: %d", receiveMsg->data_length_code);
-                // ESP_LOGI("CAN", "Message Data: %02X %02X %02X %02X %02X %02X %02X %02X", receiveMsg->data[0], receiveMsg->data[1], receiveMsg->data[2], receiveMsg->data[3], receiveMsg->data[4], receiveMsg->data[5], receiveMsg->data[6], receiveMsg->data[7]);
-
-                int len = snprintf(can_frame_buffer, 32, "t%03X%01X", receiveMsg->identifier, receiveMsg->data_length_code);
-                for (int i = 0; i < receiveMsg->data_length_code; i++)
+                if (receiveMsg->identifier == 0x7E8)
                 {
-                    // ESP_LOGE("CAN", "Data byte: %02X", receiveMsg->data[i]);
-                    len += snprintf(can_frame_buffer + len, 32 - len, "%02X", receiveMsg->data[i]);
+                    printf("t%03X%01X%02X%02X%02X%02X%02X%02X%02X%02X\n\r", receiveMsg->identifier, receiveMsg->data_length_code, receiveMsg->data[0], receiveMsg->data[1], receiveMsg->data[2], receiveMsg->data[3], receiveMsg->data[4], receiveMsg->data[5], receiveMsg->data[6], receiveMsg->data[7]);
+                    //  ESP_LOGE("CAN", "Received OBD message");
+                    //  ESP_LOGI("CAN", "Message ID: %03X", receiveMsg->identifier);
+                    //  ESP_LOGI("CAN", "Message DLC: %d", receiveMsg->data_length_code);
+                    //  ESP_LOGI("CAN", "Message Data: %02X %02X %02X %02X %02X %02X %02X %02X", receiveMsg->data[0], receiveMsg->data[1], receiveMsg->data[2], receiveMsg->data[3], receiveMsg->data[4], receiveMsg->data[5], receiveMsg->data[6], receiveMsg->data[7]);
                 }
+                // ESP_LOGI("CAN", "Received OBD message");
+
                 // len += snprintf(can_frame_buffer + len, 32 - len, "\r");
-                printf("%s\r", can_frame_buffer);
+                printf("t%03X%01X%02X%02X%02X%02X%02X%02X%02X%02X\r", receiveMsg->identifier, receiveMsg->data_length_code, receiveMsg->data[0], receiveMsg->data[1], receiveMsg->data[2], receiveMsg->data[3], receiveMsg->data[4], receiveMsg->data[5], receiveMsg->data[6], receiveMsg->data[7]);
                 // printf("\n");
                 fflush(stdout);
                 fflush(stderr);
@@ -66,14 +72,6 @@ void can_task(void *pvParameters)
         free(receiveMsg);
         // ESP_LOGI("CAN", "Checking for messages to send");
         //  pull messages from the queue and send them
-        if (pull_from_queue(can_send_queue, &sendMsg, 0))
-        {
-            // ESP_LOGI("CAN", "Sending message");
-            if (twai_transmit(&sendMsg, 5 / portTICK_PERIOD_MS) != ESP_OK)
-            {
-                // ESP_LOGE("CAN", "Failed to send CAN message");
-            }
-        }
 
         // vTaskDelay(1 / portTICK_RATE_MS);
     }
@@ -83,8 +81,9 @@ void can_task(void *pvParameters)
 void can_init(int bitrate)
 {
     ESP_LOGI("MAIN", "Initializing CAN bus");
-    twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT(CAN_TX_GPIO, CAN_RX_GPIO, TWAI_MODE_NORMAL);
+    twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT(CAN_TX_GPIO, CAN_RX_GPIO, TWAI_MODE_NO_ACK);
     g_config.rx_queue_len = 500;
+    g_config.tx_queue_len = 5;
     // g_config.intr_flags = ESP_INTR_FLAG_IRAM;
     twai_timing_config_t t_config = TWAI_TIMING_CONFIG_500KBITS();
     twai_filter_config_t f_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
@@ -114,12 +113,15 @@ void can_init(int bitrate)
 // sends the message to the TWAI
 bool write_can_message(twai_message_t message)
 {
-    if (twai_transmit(&message, 2 / portTICK_PERIOD_MS) == ESP_OK)
+    if (twai_transmit(&message, 999) == ESP_OK)
     {
+        // esp_restart();
+        ESP_LOGE("CAN", "Sent CAN message: %03X %02X %02X %02X %02X", message.identifier, message.data[0], message.data[1], message.data[2], message.data[3]);
         return true;
     }
     else
     {
+        ESP_LOGE("CAN", "Failed to send CAN message");
         return false;
     }
 }
