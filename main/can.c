@@ -49,7 +49,7 @@ void can_task(void *pvParameters)
                 if (len >= sizeof(buffer))
                 {
                     // Handle buffer overflow error
-                    return -1;
+                    return;
                 }
                 serial_message_t txmsg;
                 txmsg.len = len;

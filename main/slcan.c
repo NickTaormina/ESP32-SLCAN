@@ -195,10 +195,8 @@ void processSlCommand(uint8_t *bytes)
         // slcan_ack();
         break;
     case 'S':
-        if (bytes[1])
-        {
-            setup_speed(bytes[1]);
-        }
+        setup_speed(bytes[1]);
+        slcan_ack();
         break;
         /*
         case 'W':
