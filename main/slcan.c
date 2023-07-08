@@ -180,7 +180,14 @@ void processSlCommand(uint8_t *bytes)
     switch ((char)bytes[0])
     {
     case 'O':
-        slcan_init();
+        if (open_can_interface())
+        {
+            slcan_ack();
+        }
+        else
+        {
+            slcan_nack();
+        }
         break;
     case 'C':
         slcan_close();
@@ -195,8 +202,40 @@ void processSlCommand(uint8_t *bytes)
         // slcan_ack();
         break;
     case 'S':
-        setup_speed(bytes[1]);
-        slcan_ack();
+        if (setup_speed(bytes[1]))
+        {
+            slcan_ack();
+        }
+        else
+        {
+            slcan_nack();
+        }
+        break;
+    case 's':
+        if (bytes == NULL)
+        {
+            printf("\a"); // BELL (Ascii 7) for ERROR
+            return;
+        }
+
+        // Extract BTR0 and BTR1 values from the input array
+        uint8_t btr0 = (asciiToHex(bytes[1]) << 4) | asciiToHex(bytes[2]);
+        uint8_t btr1 = (asciiToHex(bytes[3]) << 4) | asciiToHex(bytes[4]);
+
+        // Calculate bitrate based on CAN232 formula
+        uint32_t bitrate = 16000000 / ((btr0 + 1) * (btr1 + 1));
+
+        // Print the corresponding bitrate
+        printf("Setup with BTR0/BTR1 CAN bit-rates where xx and yy is a hex value.\r\n"
+               "This command is only active if the CAN channel is closed.\r\n"
+               "xx BTR0 value in hex\r\n"
+               "yy BTR1 value in hex\r\n"
+               "Example: s031C\r\n"
+               "Setup CAN with BTR0=0x%02X & BTR1=0x%02X\r\n"
+               "which equals to %u Kbit.\r\n"
+               "Returns: CR (Ascii 13) for OK or BELL (Ascii 7) for ERROR.\r\n",
+               btr0, btr1, bitrate);
+        printf("\r\n"); // CR (Ascii 13) for OK
         break;
         /*
         case 'W':

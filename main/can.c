@@ -87,40 +87,42 @@ void can_task(void *pvParameters)
 }
 
 // opens the twai interface and starts the driver with the specified speed
-void open_can_interface()
+bool open_can_interface()
 {
-    ESP_LOGI("MAIN", "Initializing CAN bus");
+    // ESP_LOGI("MAIN", "Initializing CAN bus");
     if (!speed_set) // !speed_set
     {
         // we cant set up the speed
-        return;
+        return false;
     }
     twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT(CAN_TX_GPIO, CAN_RX_GPIO, TWAI_MODE_NO_ACK);
     g_config.rx_queue_len = 500;
     twai_timing_config_t bspeed = TWAI_TIMING_CONFIG_500KBITS();
     twai_filter_config_t f_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
-    ESP_LOGI("MAIN", "CAN configs initialized");
-    // Initialize CAN module
+    // ESP_LOGI("MAIN", "CAN configs initialized");
+    //  Initialize CAN module
     if (twai_driver_install(&g_config, &bspeed, &f_config) == ESP_OK)
     {
         // Start TWAI driver
         if (twai_start() == ESP_OK)
         {
-            ESP_LOGI("CAN", "CAN Driver started");
+            // ESP_LOGI("CAN", "CAN Driver started");
+            return true;
         }
         else
         {
-            ESP_LOGE("CAN", "Failed to start driver\n");
-            return;
+            // ESP_LOGE("CAN", "Failed to start driver\n");
+            return false;
         }
     }
     else
     {
-        // Handle error
+        return false;
     }
+    return false;
 }
 
-void setup_speed(char speed_code)
+bool setup_speed(char speed_code)
 {
     switch (speed_code)
     {
@@ -163,8 +165,9 @@ void setup_speed(char speed_code)
     default:
         // Handle error
         speed_set = false;
-        return;
+        break;
     }
+    return speed_set;
 }
 
 // sends the message to the TWAI
