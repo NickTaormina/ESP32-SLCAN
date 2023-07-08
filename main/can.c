@@ -13,6 +13,7 @@ void can_task(void *pvParameters)
 {
     ESP_LOGE("CAN", "CAN task started");
     twai_message_t *receiveMsg;
+
     while (1)
     {
         twai_status_info_t test;
@@ -26,15 +27,25 @@ void can_task(void *pvParameters)
             vTaskDelay(50 / portTICK_RATE_MS);
         }
     }
-    // continuously check for received messages
+
+    // Continuously check for received messages
     uint8_t buffer[30];
+
     while (1)
     {
-        //  receive can messages
+        // Receive CAN messages
         receiveMsg = (twai_message_t *)malloc(sizeof(twai_message_t));
+
+        if (receiveMsg == NULL)
+        {
+            ESP_LOGE("CAN", "Failed to allocate memory for receiveMsg");
+            continue; // Skip processing this message and proceed to the next iteration
+        }
+
         if (twai_receive(receiveMsg, 1 / portTICK_PERIOD_MS) == ESP_OK)
         {
-            // push the received message to the queue
+            // Process the received message and send it to the queue
+
             if (1)
             {
                 // Write the data into the buffer using snprintf
@@ -45,24 +56,29 @@ void can_task(void *pvParameters)
                                    receiveMsg->data[3], receiveMsg->data[4], receiveMsg->data[5],
                                    receiveMsg->data[6], receiveMsg->data[7]);
 
-                // Verify if the data fits within the buffer
-                if (len >= sizeof(buffer))
+                if (len >= sizeof(buffer) || len > 64)
                 {
-                    // Handle buffer overflow error
-                    return;
+                    ESP_LOGE("CAN", "Buffer overflow detected");
+                    // Handle buffer overflow error, such as logging an error message
                 }
-                serial_message_t txmsg;
-                txmsg.len = len;
-                memcpy(txmsg.data, buffer, len);
-                xQueueSend(serial_out_queue, (void *)&txmsg, portMAX_DELAY);
-                // printf("t%03X%01X%02X%02X%02X%02X%02X%02X%02X%02X\r", receiveMsg->identifier, receiveMsg->data_length_code, receiveMsg->data[0], receiveMsg->data[1], receiveMsg->data[2], receiveMsg->data[3], receiveMsg->data[4], receiveMsg->data[5], receiveMsg->data[6], receiveMsg->data[7]);
-                // fflush(stdout);
-                // fflush(stderr);
+                else
+                {
+                    serial_message_t txmsg;
+                    txmsg.len = len;
+                    memcpy(txmsg.data, buffer, len);
+                    if (xQueueSend(serial_out_queue, &txmsg, portMAX_DELAY) != pdPASS)
+                    {
+                        ESP_LOGE("CAN", "Failed to send message to the queue");
+                        // Handle queue send failure, such as logging an error message or taking recovery action
+                    }
+                }
             }
         }
         else
         {
+            // Handle receive failure, such as logging an error message or taking recovery action
         }
+
         free(receiveMsg);
     }
 }
@@ -71,17 +87,18 @@ void can_task(void *pvParameters)
 void open_can_interface()
 {
     ESP_LOGI("MAIN", "Initializing CAN bus");
-    if (!speed_set)
+    if (!1) // !speed_set
     {
         // we cant set up the speed
         return;
     }
     twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT(CAN_TX_GPIO, CAN_RX_GPIO, TWAI_MODE_NO_ACK);
     g_config.rx_queue_len = 500;
+    twai_timing_config_t bspeed = TWAI_TIMING_CONFIG_500KBITS();
     twai_filter_config_t f_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
     ESP_LOGI("MAIN", "CAN configs initialized");
     // Initialize CAN module
-    if (twai_driver_install(&g_config, &bus_speed, &f_config) == ESP_OK)
+    if (twai_driver_install(&g_config, &bspeed, &f_config) == ESP_OK)
     {
         // Start TWAI driver
         if (twai_start() == ESP_OK)
@@ -129,6 +146,7 @@ void setup_speed(char speed_code)
         speed_set = true;
         break;
     case '6':
+        ESP_LOGE("CAN", "CAN Driver started");
         bus_speed = (twai_timing_config_t){.brp = 8, .tseg_1 = 15, .tseg_2 = 4, .sjw = 3, .triple_sampling = false};
         speed_set = true;
         break;

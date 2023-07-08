@@ -88,15 +88,28 @@ void rx_task()
 
 void app_main()
 {
+    usb_serial_jtag_driver_config_t usb_serial_jtag_driver_config = {
+        .rx_buffer_size = 256,
+        .tx_buffer_size = 256,
+    };
+
+    esp_err_t err = usb_serial_jtag_driver_install(&usb_serial_jtag_driver_config);
+    if (err != ESP_OK)
+    {
+        printf("Error installing USB serial JTAG driver: %s\n", esp_err_to_name(err));
+    }
+    vTaskDelay(20);
     setvbuf(stdout, NULL, _IONBF, 0);
     setbuf(stdout, NULL);
-    init_usbcomm();
-    open_can_interface();
-
     can_send_queue = xQueueCreate(10, 2 * sizeof(twai_message_t));
     can_receive_queue = xQueueCreate(10, 2 * sizeof(twai_message_t));
     serial_in_queue = xQueueCreate(10, 2 * sizeof(serial_message_t));
     serial_out_queue = xQueueCreate(10, 2 * sizeof(serial_message_t));
+    vTaskDelay(20);
+    init_usbcomm();
+    vTaskDelay(20);
+    open_can_interface();
+
     vTaskDelay(1 / portTICK_PERIOD_MS);
 
     // start the CAN driver
@@ -104,7 +117,7 @@ void app_main()
     // Create the twai and slcan tasks
     // xTaskCreate(slcan_task, "slcan_task", 4096, NULL, 1, NULL);
     vTaskDelay(5 / portTICK_PERIOD_MS);
-    xTaskCreate(can_task, "can_task", 2048, NULL, configMAX_PRIORITIES, NULL);
+    xTaskCreate(can_task, "can_task", 4096, NULL, configMAX_PRIORITIES, NULL);
     vTaskDelay(5 / portTICK_PERIOD_MS);
     ESP_LOGI("MAIN", "Setup finished");
 }

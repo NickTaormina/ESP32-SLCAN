@@ -3,26 +3,23 @@
 
 void init_usbcomm(void)
 {
-    usb_serial_jtag_driver_config_t usb_serial_jtag_driver_config = {
-        .rx_buffer_size = 256,
-        .tx_buffer_size = 256,
-    };
 
-    ESP_ERROR_CHECK(usb_serial_jtag_driver_install(&usb_serial_jtag_driver_config));
-
-    xTaskCreate(usbcomm_rx_task, "usbcomm_rx_task", 2048, NULL, 1, NULL);
-    xTaskCreate(usbcomm_tx_task, "usbcomm_tx_task", 2048, NULL, 1, NULL);
+    xTaskCreate(usbcomm_rx_task, "usbcomm_rx_task", 3072, NULL, 1, NULL);
+    xTaskCreate(usbcomm_tx_task, "usbcomm_tx_task", 3072, NULL, 1, NULL);
 }
 
 // task to handle outputting to the serial port
 void usbcomm_tx_task(void *pvParameter)
 {
-    serial_message_t txmsg;
+
     while (1)
     {
-        xQueueReceive(serial_out_queue, (void *)&txmsg, portMAX_DELAY);
-        printf("%s", txmsg.data);
-        flush_output();
+        serial_message_t txmsg;
+        if (xQueueReceive(serial_out_queue, (void *)&txmsg, portMAX_DELAY) == pdTRUE)
+        {
+            printf("%s", txmsg.data);
+            flush_output();
+        }
     }
 }
 
@@ -36,11 +33,10 @@ void usbcomm_rx_task(void *pvParameter)
     uint8_t *rxbf = (uint8_t *)malloc(512);
     // Define rx_buffer for serial in
     static uint8_t rx_store[2 * 256];
-    ESP_LOGE("slcan", "slcan task started2");
+    ESP_LOGE("slcan", "slcan task started");
     while (1)
     {
         // read the serial port inputs for commands
-
         msgLen = usb_serial_jtag_read_bytes(rxbf, 256, 0);
         if (msgLen > 0)
         {
@@ -69,7 +65,7 @@ void usbcomm_rx_task(void *pvParameter)
             {
             }
         }
-        vTaskDelay(2 / portTICK_PERIOD_MS);
+        vTaskDelay(2);
     }
 }
 
