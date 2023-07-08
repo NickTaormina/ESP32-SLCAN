@@ -29,10 +29,6 @@ bool busIsRunning;
 // rtos
 void slcan_init(void);
 void slcan_task(void *pvParameters);
-void spiffs_init();
-void read_file(const char *filename, char *buffer, size_t max_size);
-void write_file(const char *filename, char *data);
-char *read_spiffs_file_to_buffer(const char *path);
 
 void slcan_ack();
 void slcan_nack();
