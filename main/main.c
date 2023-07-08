@@ -19,10 +19,11 @@ void app_main()
     setbuf(stdout, NULL);
     usb_serial_jtag_driver_config_t usb_serial_jtag_driver_config = {
         .rx_buffer_size = 256,
-        .tx_buffer_size = 1,
+        .tx_buffer_size = 64,
     };
-
     ESP_ERROR_CHECK(usb_serial_jtag_driver_install(&usb_serial_jtag_driver_config));
+
+    open_can_interface();
 
     can_send_queue = xQueueCreate(10, sizeof(twai_message_t));
     can_receive_queue = xQueueCreate(10, sizeof(twai_message_t));

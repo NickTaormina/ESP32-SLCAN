@@ -23,7 +23,7 @@ void can_task(void *pvParameters)
         }
         else
         {
-            printf("bus not open");
+            vTaskDelay(50 / portTICK_RATE_MS);
         }
     }
     // continuously check for received messages
@@ -87,42 +87,51 @@ void setup_speed(char speed_code)
     {
     case '0':
         bus_speed = (twai_timing_config_t){.brp = 400, .tseg_1 = 15, .tseg_2 = 4, .sjw = 3, .triple_sampling = false};
+        speed_set = true;
         break;
     case '1':
         bus_speed = (twai_timing_config_t){.brp = 200, .tseg_1 = 15, .tseg_2 = 4, .sjw = 3, .triple_sampling = false};
+        speed_set = true;
         break;
     case '2':
         bus_speed = (twai_timing_config_t){.brp = 80, .tseg_1 = 15, .tseg_2 = 4, .sjw = 3, .triple_sampling = false};
+        speed_set = true;
         break;
     case '3':
         bus_speed = (twai_timing_config_t){.brp = 40, .tseg_1 = 15, .tseg_2 = 4, .sjw = 3, .triple_sampling = false};
+        speed_set = true;
         break;
     case '4':
         bus_speed = (twai_timing_config_t){.brp = 32, .tseg_1 = 15, .tseg_2 = 4, .sjw = 3, .triple_sampling = false};
+        speed_set = true;
         break;
     case '5':
         bus_speed = (twai_timing_config_t){.brp = 16, .tseg_1 = 15, .tseg_2 = 4, .sjw = 3, .triple_sampling = false};
+        speed_set = true;
         break;
     case '6':
         bus_speed = (twai_timing_config_t){.brp = 8, .tseg_1 = 15, .tseg_2 = 4, .sjw = 3, .triple_sampling = false};
+        speed_set = true;
         break;
     case '7':
         bus_speed = (twai_timing_config_t){.brp = 4, .tseg_1 = 16, .tseg_2 = 8, .sjw = 3, .triple_sampling = false};
+        speed_set = true;
         break;
     case '8':
         bus_speed = (twai_timing_config_t){.brp = 4, .tseg_1 = 15, .tseg_2 = 4, .sjw = 3, .triple_sampling = false};
+        speed_set = true;
         break;
     default:
         // Handle error
+        speed_set = false;
         return;
     }
-    speed_set = true;
 }
 
 // sends the message to the TWAI
 bool write_can_message(twai_message_t message)
 {
-    if (twai_transmit(&message, 999) == ESP_OK)
+    if (twai_transmit(&message, 10) == ESP_OK)
     {
         return true;
     }
