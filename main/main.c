@@ -13,6 +13,7 @@
 #include "hal/usb_serial_jtag_ll.h"
 #include "driver/usb_serial_jtag.h"
 #include "usbcomm.h"
+#include "flash_handler.h"
 
 // for can messages as a whole
 void tx_task()
@@ -114,6 +115,8 @@ void app_main()
         printf("Error installing USB serial JTAG driver: %s\n", esp_err_to_name(err));
     }
     vTaskDelay(20);
+    spiffs_init();
+    char *test = read_spiffs_file_to_buffer("/spiffs/CAN.TXT");
     setvbuf(stdout, NULL, _IONBF, 0);
     setbuf(stdout, NULL);
     can_send_queue = xQueueCreate(10, 2 * sizeof(twai_message_t));

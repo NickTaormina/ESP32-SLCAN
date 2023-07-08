@@ -40,8 +40,11 @@ void usbcomm_rx_task(void *pvParameter)
         msgLen = usb_serial_jtag_read_bytes(rxbf, 64, 0);
         if (msgLen > 0)
         {
-            //  store the message in case it is incomplete
-            if (rxStoreLen + msgLen <= (64))
+            // Define a variable to keep track of the starting index of the next message
+            int nextMsgIndex = 0;
+
+            // Store the message in case it is incomplete
+            if (rxStoreLen + msgLen <= 64)
             {
                 memcpy(rx_store + rxStoreLen, rxbf, msgLen);
                 rxStoreLen += msgLen;
@@ -49,17 +52,28 @@ void usbcomm_rx_task(void *pvParameter)
                 {
                     if (rx_store[i] == SLCAN_CR)
                     {
-                        // send the message to be processed
+                        // Send the message to be processed
                         // processSlCommand(rx_store);
-                        memcpy(rxmsg.data, rx_store, rxStoreLen);
-                        rxmsg.len = rxStoreLen;
+                        memcpy(rxmsg.data, rx_store + nextMsgIndex, i - nextMsgIndex);
+                        rxmsg.len = i - nextMsgIndex;
+                        append_spiffs_file("/spiffs/CAN.TXT", (char *)rxmsg.data);
                         xQueueSend(serial_in_queue, (void *)&rxmsg, portMAX_DELAY);
-                        //   clear the message from the store
-                        memset(rx_store, 0, rxStoreLen);
-                        rxStoreLen = 0;
+                        // Update the next message index
+                        nextMsgIndex = i + 1;
                     }
                 }
+
+                // Move the remaining incomplete message to the beginning of the array
+                int remainingMsgLen = rxStoreLen - nextMsgIndex;
+                if (remainingMsgLen > 0)
+                {
+                    memmove(rx_store, rx_store + nextMsgIndex, remainingMsgLen);
+                }
+
+                // Update the length of the stored data
+                rxStoreLen = remainingMsgLen;
             }
+
             else
             {
             }

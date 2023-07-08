@@ -180,6 +180,10 @@ void processSlCommand(uint8_t *bytes)
     switch ((char)bytes[0])
     {
     case 'O':
+        if (bytes[1] == '6')
+        {
+            setup_speed(bytes[1]);
+        }
         if (open_can_interface())
         {
             slcan_ack();
@@ -190,7 +194,7 @@ void processSlCommand(uint8_t *bytes)
         }
         break;
     case 'C':
-        slcan_close();
+        // slcan_close();
         slcan_ack();
         break;
     case 't':

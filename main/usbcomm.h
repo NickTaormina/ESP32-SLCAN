@@ -7,6 +7,7 @@
 #include "freertos/task.h"
 #include "driver/usb_serial_jtag.h"
 #include "queues.h"
+#include "flash_handler.h"
 
 xQueueHandle *usbcomm_tx_queue;
 xQueueHandle *usbcomm_rx_queue;
