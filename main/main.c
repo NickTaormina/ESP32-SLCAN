@@ -123,7 +123,7 @@ void app_main()
     vTaskDelay(20);
     init_usbcomm();
     vTaskDelay(20);
-    open_can_interface();
+    // open_can_interface();
 
     vTaskDelay(1 / portTICK_PERIOD_MS);
 

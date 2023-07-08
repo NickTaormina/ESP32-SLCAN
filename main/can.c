@@ -90,7 +90,7 @@ void can_task(void *pvParameters)
 void open_can_interface()
 {
     ESP_LOGI("MAIN", "Initializing CAN bus");
-    if (!1) // !speed_set
+    if (!speed_set) // !speed_set
     {
         // we cant set up the speed
         return;
@@ -149,7 +149,6 @@ void setup_speed(char speed_code)
         speed_set = true;
         break;
     case '6':
-        ESP_LOGE("CAN", "CAN Driver started");
         bus_speed = (twai_timing_config_t){.brp = 8, .tseg_1 = 15, .tseg_2 = 4, .sjw = 3, .triple_sampling = false};
         speed_set = true;
         break;
