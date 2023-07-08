@@ -56,7 +56,7 @@ void usbcomm_rx_task(void *pvParameter)
                         // processSlCommand(rx_store);
                         memcpy(rxmsg.data, rx_store + nextMsgIndex, i - nextMsgIndex);
                         rxmsg.len = i - nextMsgIndex;
-                        append_spiffs_file("/spiffs/CAN.TXT", (char *)rxmsg.data);
+                        // append_spiffs_file("/spiffs/CAN.TXT", (char *)rxmsg.data);
                         xQueueSend(serial_in_queue, (void *)&rxmsg, portMAX_DELAY);
                         // Update the next message index
                         nextMsgIndex = i + 1;
