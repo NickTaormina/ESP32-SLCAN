@@ -27,6 +27,7 @@ void can_task(void *pvParameters)
         }
     }
     // continuously check for received messages
+    uint8_t buffer[30];
     while (1)
     {
         //  receive can messages
@@ -36,9 +37,27 @@ void can_task(void *pvParameters)
             // push the received message to the queue
             if (1)
             {
-                printf("t%03X%01X%02X%02X%02X%02X%02X%02X%02X%02X\r", receiveMsg->identifier, receiveMsg->data_length_code, receiveMsg->data[0], receiveMsg->data[1], receiveMsg->data[2], receiveMsg->data[3], receiveMsg->data[4], receiveMsg->data[5], receiveMsg->data[6], receiveMsg->data[7]);
-                fflush(stdout);
-                fflush(stderr);
+                // Write the data into the buffer using snprintf
+                int len = snprintf((char *)buffer, sizeof(buffer),
+                                   "t%03X%01X%02X%02X%02X%02X%02X%02X%02X%02X\r",
+                                   receiveMsg->identifier, receiveMsg->data_length_code,
+                                   receiveMsg->data[0], receiveMsg->data[1], receiveMsg->data[2],
+                                   receiveMsg->data[3], receiveMsg->data[4], receiveMsg->data[5],
+                                   receiveMsg->data[6], receiveMsg->data[7]);
+
+                // Verify if the data fits within the buffer
+                if (len >= sizeof(buffer))
+                {
+                    // Handle buffer overflow error
+                    return -1;
+                }
+                serial_message_t txmsg;
+                txmsg.len = len;
+                memcpy(txmsg.data, buffer, len);
+                xQueueSend(serial_out_queue, (void *)&txmsg, portMAX_DELAY);
+                // printf("t%03X%01X%02X%02X%02X%02X%02X%02X%02X%02X\r", receiveMsg->identifier, receiveMsg->data_length_code, receiveMsg->data[0], receiveMsg->data[1], receiveMsg->data[2], receiveMsg->data[3], receiveMsg->data[4], receiveMsg->data[5], receiveMsg->data[6], receiveMsg->data[7]);
+                // fflush(stdout);
+                // fflush(stderr);
             }
         }
         else

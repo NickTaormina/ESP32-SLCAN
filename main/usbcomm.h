@@ -14,4 +14,6 @@ xQueueHandle *usbcomm_rx_queue;
 void init_usbcomm(void);
 void usbcomm_tx_task(void *pvParameter);
 void usbcomm_rx_task(void *pvParameter);
+
+void flush_output();
 #endif
