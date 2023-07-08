@@ -12,7 +12,12 @@
 
 // rtos
 void can_task(void *pvParameters);
-void can_init(int bitrate);
+
+// interface
+twai_timing_config_t bus_speed; // variable to store the bus speed
+bool speed_set;                 // Boolean to track if speed has been set
+void setup_speed(char speed_code);
+void open_can_interface();
 
 // local functions
 bool write_can_message(twai_message_t message);

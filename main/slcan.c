@@ -24,12 +24,10 @@ void slcan_nack()
 
 void slcan_init(void)
 {
-
-    can_init(500000);
+    open_can_interface();
 }
 
 // Define rx_buffer for serial in
-static uint8_t rx_buffer[RX_BUF_SIZE];
 static uint8_t rx_store[2 * RX_BUF_SIZE];
 
 // slcan task to process serial commands sent to the device over the USB serial port
@@ -41,7 +39,6 @@ void slcan_task(void *pvParameters)
     ESP_LOGE("slcan", "slcan task started");
 
     uint8_t *rxbf = (uint8_t *)malloc(512);
-    static bool first_can_message = true;
     while (1)
     {
         // read the serial port inputs for commands
@@ -183,12 +180,11 @@ void processSlCommand(uint8_t *bytes)
     switch ((char)bytes[0])
     {
     case 'O':
-        // slcan_init();
-        //  vTaskResume(readHandle);
+        slcan_init();
         break;
     case 'C':
-        // slcan_close();
-        // slcan_ack();
+        slcan_close();
+        slcan_ack();
         break;
     case 't':
         send_can(bytes);
@@ -197,6 +193,12 @@ void processSlCommand(uint8_t *bytes)
     case 'T':
         // send_can(bytes);
         // slcan_ack();
+        break;
+    case 'S':
+        if (bytes[1])
+        {
+            setup_speed(bytes[1]);
+        }
         break;
         /*
         case 'W':

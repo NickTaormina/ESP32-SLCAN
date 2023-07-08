@@ -25,6 +25,7 @@
 extern TaskHandle_t readHandle;
 
 bool busIsRunning;
+int busSpeed;
 
 // rtos
 void slcan_init(void);

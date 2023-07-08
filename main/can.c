@@ -13,7 +13,6 @@ void can_task(void *pvParameters)
 {
     ESP_LOGE("CAN", "CAN task started");
     twai_message_t *receiveMsg;
-    twai_message_t sendMsg;
     while (1)
     {
         twai_status_info_t test;
@@ -27,7 +26,6 @@ void can_task(void *pvParameters)
             printf("bus not open");
         }
     }
-    char *can_frame_buffer = malloc(32);
     // continuously check for received messages
     while (1)
     {
@@ -50,36 +48,75 @@ void can_task(void *pvParameters)
     }
 }
 
-// todo: implement bitrate switching
-void can_init(int bitrate)
+// opens the twai interface and starts the driver with the specified speed
+void open_can_interface()
 {
     ESP_LOGI("MAIN", "Initializing CAN bus");
+    if (!speed_set)
+    {
+        // we cant set up the speed
+        return;
+    }
     twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT(CAN_TX_GPIO, CAN_RX_GPIO, TWAI_MODE_NO_ACK);
     g_config.rx_queue_len = 500;
-    g_config.tx_queue_len = 5;
-    twai_timing_config_t t_config = TWAI_TIMING_CONFIG_500KBITS();
     twai_filter_config_t f_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
     ESP_LOGI("MAIN", "CAN configs initialized");
-    if (twai_driver_install(&g_config, &t_config, &f_config) == ESP_OK)
+    // Initialize CAN module
+    if (twai_driver_install(&g_config, &bus_speed, &f_config) == ESP_OK)
     {
-        ESP_LOGI("CAN", "CAN Driver installed\n");
+        // Start TWAI driver
+        if (twai_start() == ESP_OK)
+        {
+            ESP_LOGI("CAN", "CAN Driver started");
+        }
+        else
+        {
+            ESP_LOGE("CAN", "Failed to start driver\n");
+            return;
+        }
     }
     else
     {
-        ESP_LOGE("CAN", "Failed to install driver\n");
-        return;
+        // Handle error
     }
+}
 
-    // Start TWAI driver
-    if (twai_start() == ESP_OK)
+void setup_speed(char speed_code)
+{
+    switch (speed_code)
     {
-        ESP_LOGI("CAN", "CAN Driver started");
-    }
-    else
-    {
-        ESP_LOGE("CAN", "Failed to start driver\n");
+    case '0':
+        bus_speed = (twai_timing_config_t){.brp = 400, .tseg_1 = 15, .tseg_2 = 4, .sjw = 3, .triple_sampling = false};
+        break;
+    case '1':
+        bus_speed = (twai_timing_config_t){.brp = 200, .tseg_1 = 15, .tseg_2 = 4, .sjw = 3, .triple_sampling = false};
+        break;
+    case '2':
+        bus_speed = (twai_timing_config_t){.brp = 80, .tseg_1 = 15, .tseg_2 = 4, .sjw = 3, .triple_sampling = false};
+        break;
+    case '3':
+        bus_speed = (twai_timing_config_t){.brp = 40, .tseg_1 = 15, .tseg_2 = 4, .sjw = 3, .triple_sampling = false};
+        break;
+    case '4':
+        bus_speed = (twai_timing_config_t){.brp = 32, .tseg_1 = 15, .tseg_2 = 4, .sjw = 3, .triple_sampling = false};
+        break;
+    case '5':
+        bus_speed = (twai_timing_config_t){.brp = 16, .tseg_1 = 15, .tseg_2 = 4, .sjw = 3, .triple_sampling = false};
+        break;
+    case '6':
+        bus_speed = (twai_timing_config_t){.brp = 8, .tseg_1 = 15, .tseg_2 = 4, .sjw = 3, .triple_sampling = false};
+        break;
+    case '7':
+        bus_speed = (twai_timing_config_t){.brp = 4, .tseg_1 = 16, .tseg_2 = 8, .sjw = 3, .triple_sampling = false};
+        break;
+    case '8':
+        bus_speed = (twai_timing_config_t){.brp = 4, .tseg_1 = 15, .tseg_2 = 4, .sjw = 3, .triple_sampling = false};
+        break;
+    default:
+        // Handle error
         return;
     }
+    speed_set = true;
 }
 
 // sends the message to the TWAI

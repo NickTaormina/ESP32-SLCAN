@@ -30,9 +30,7 @@ void app_main()
     serial_out_queue = xQueueCreate(10, 20 * sizeof(uint8_t *));
     vTaskDelay(1 / portTICK_PERIOD_MS);
 
-    uint8_t *rxbf = (uint8_t *)malloc(1028);
     // start the CAN driver
-    slcan_init();
     vTaskDelay(5 / portTICK_PERIOD_MS);
     // Create the twai and slcan tasks
     xTaskCreate(slcan_task, "slcan_task", 4096, NULL, 1, NULL);
