@@ -30,18 +30,18 @@ void usbcomm_rx_task(void *pvParameter)
     serial_message_t rxmsg;
     int msgLen = 0;
     int rxStoreLen = 0;
-    uint8_t *rxbf = (uint8_t *)malloc(512);
+    uint8_t *rxbf = (uint8_t *)malloc(64);
     // Define rx_buffer for serial in
-    static uint8_t rx_store[2 * 256];
+    static uint8_t rx_store[64];
     ESP_LOGE("slcan", "slcan task started");
     while (1)
     {
         // read the serial port inputs for commands
-        msgLen = usb_serial_jtag_read_bytes(rxbf, 256, 0);
+        msgLen = usb_serial_jtag_read_bytes(rxbf, 64, 0);
         if (msgLen > 0)
         {
             //  store the message in case it is incomplete
-            if (rxStoreLen + msgLen <= (2 * 256))
+            if (rxStoreLen + msgLen <= (64))
             {
                 memcpy(rx_store + rxStoreLen, rxbf, msgLen);
                 rxStoreLen += msgLen;
@@ -51,6 +51,8 @@ void usbcomm_rx_task(void *pvParameter)
                     {
                         // send the message to be processed
                         // processSlCommand(rx_store);
+                        memcpy(rxmsg.data, rx_store, rxStoreLen);
+                        rxmsg.len = rxStoreLen;
                         xQueueSend(serial_in_queue, (void *)&rxmsg, portMAX_DELAY);
                         //   clear the message from the store
                         memset(rx_store, 0, rxStoreLen);

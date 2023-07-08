@@ -22,7 +22,6 @@ void tx_task()
     {
         if (xQueueReceive(serial_in_queue, &buffer, portMAX_DELAY) == pdTRUE)
         {
-            ESP_LOGE("CAN", "Received message from serial: %s", buffer.data);
             processSlCommand(buffer.data);
         }
     }
@@ -33,6 +32,7 @@ void rx_task()
 {
     ESP_LOGE("CAN", "CAN task started");
     twai_message_t *receiveMsg;
+
     while (1)
     {
         twai_status_info_t test;
@@ -46,15 +46,24 @@ void rx_task()
             vTaskDelay(50 / portTICK_RATE_MS);
         }
     }
-    // continuously check for received messages
+
+    // Continuously check for received messages
     uint8_t buffer[30];
+
     while (1)
     {
-        //  receive can messages
+        // Receive CAN messages
         receiveMsg = (twai_message_t *)malloc(sizeof(twai_message_t));
+
+        if (receiveMsg == NULL)
+        {
+            ESP_LOGE("CAN", "Failed to allocate memory for receiveMsg");
+            continue; // Skip processing this message and proceed to the next iteration
+        }
+
         if (twai_receive(receiveMsg, 1 / portTICK_PERIOD_MS) == ESP_OK)
         {
-            // push the received message to the queue
+            // Process the received message and send it to the queue
             if (1)
             {
                 // Write the data into the buffer using snprintf
@@ -65,24 +74,29 @@ void rx_task()
                                    receiveMsg->data[3], receiveMsg->data[4], receiveMsg->data[5],
                                    receiveMsg->data[6], receiveMsg->data[7]);
 
-                // Verify if the data fits within the buffer
-                if (len >= sizeof(buffer))
+                if (len >= sizeof(buffer) || len > 64)
                 {
-                    // Handle buffer overflow error
-                    return -1;
+                    ESP_LOGE("CAN", "Buffer overflow detected");
+                    // Handle buffer overflow error, such as logging an error message
                 }
-                serial_message_t txmsg;
-                txmsg.len = len;
-                memcpy(txmsg.data, buffer, len);
-                xQueueSend(serial_out_queue, (void *)&txmsg, portMAX_DELAY);
-                // printf("t%03X%01X%02X%02X%02X%02X%02X%02X%02X%02X\r", receiveMsg->identifier, receiveMsg->data_length_code, receiveMsg->data[0], receiveMsg->data[1], receiveMsg->data[2], receiveMsg->data[3], receiveMsg->data[4], receiveMsg->data[5], receiveMsg->data[6], receiveMsg->data[7]);
-                // fflush(stdout);
-                // fflush(stderr);
+                else
+                {
+                    serial_message_t txmsg;
+                    txmsg.len = len;
+                    memcpy(txmsg.data, buffer, len);
+                    if (xQueueSend(serial_out_queue, &txmsg, portMAX_DELAY) != pdPASS)
+                    {
+                        ESP_LOGE("CAN", "Failed to send message to the queue");
+                        // Handle queue send failure, such as logging an error message or taking recovery action
+                    }
+                }
             }
         }
         else
         {
+            // Handle receive failure, such as logging an error message or taking recovery action
         }
+
         free(receiveMsg);
     }
 }
@@ -118,7 +132,8 @@ void app_main()
     // Create the twai and slcan tasks
     // xTaskCreate(slcan_task, "slcan_task", 4096, NULL, 1, NULL);
     vTaskDelay(5 / portTICK_PERIOD_MS);
-    xTaskCreate(can_task, "can_task", 4096, NULL, configMAX_PRIORITIES, NULL);
+    xTaskCreate(tx_task, "tx_task", 4096, NULL, configMAX_PRIORITIES, NULL);
+    xTaskCreate(rx_task, "rx_task", 4096, NULL, configMAX_PRIORITIES, NULL);
     vTaskDelay(5 / portTICK_PERIOD_MS);
     ESP_LOGI("MAIN", "Setup finished");
 }
