@@ -22,6 +22,7 @@ void tx_task()
     {
         if (xQueueReceive(serial_in_queue, &buffer, portMAX_DELAY) == pdTRUE)
         {
+            ESP_LOGE("CAN", "Received message from serial: %s", buffer.data);
             processSlCommand(buffer.data);
         }
     }

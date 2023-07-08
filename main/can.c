@@ -45,7 +45,10 @@ void can_task(void *pvParameters)
         if (twai_receive(receiveMsg, 1 / portTICK_PERIOD_MS) == ESP_OK)
         {
             // Process the received message and send it to the queue
-
+            if (receiveMsg->identifier == 0x7E8)
+            {
+                ESP_LOGE("CAN", "Received message from ECU: %02X%02X%02X%02X%02X%02X%02X%02X", receiveMsg->data[0], receiveMsg->data[1], receiveMsg->data[2], receiveMsg->data[3], receiveMsg->data[4], receiveMsg->data[5], receiveMsg->data[6], receiveMsg->data[7]);
+            }
             if (1)
             {
                 // Write the data into the buffer using snprintf

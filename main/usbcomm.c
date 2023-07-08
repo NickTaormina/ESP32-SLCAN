@@ -40,7 +40,6 @@ void usbcomm_rx_task(void *pvParameter)
         msgLen = usb_serial_jtag_read_bytes(rxbf, 256, 0);
         if (msgLen > 0)
         {
-            ESP_LOGE("slcan", "got bytes");
             //  store the message in case it is incomplete
             if (rxStoreLen + msgLen <= (2 * 256))
             {
@@ -52,12 +51,10 @@ void usbcomm_rx_task(void *pvParameter)
                     {
                         // send the message to be processed
                         // processSlCommand(rx_store);
-                        ESP_LOGE("slcan", "got command");
                         xQueueSend(serial_in_queue, (void *)&rxmsg, portMAX_DELAY);
                         //   clear the message from the store
                         memset(rx_store, 0, rxStoreLen);
                         rxStoreLen = 0;
-                        ESP_LOGE("slcan", "sent command");
                     }
                 }
             }
