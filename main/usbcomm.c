@@ -5,7 +5,7 @@ void init_usbcomm(void)
 {
     usb_serial_jtag_driver_config_t usb_serial_jtag_driver_config = {
         .rx_buffer_size = 256,
-        .tx_buffer_size = 1,
+        .tx_buffer_size = 256,
     };
 
     ESP_ERROR_CHECK(usb_serial_jtag_driver_install(&usb_serial_jtag_driver_config));

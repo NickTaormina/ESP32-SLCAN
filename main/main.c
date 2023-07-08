@@ -104,7 +104,7 @@ void app_main()
     // Create the twai and slcan tasks
     // xTaskCreate(slcan_task, "slcan_task", 4096, NULL, 1, NULL);
     vTaskDelay(5 / portTICK_PERIOD_MS);
-    // xTaskCreate(can_task, "can_task", 2048, NULL, configMAX_PRIORITIES, NULL);
+    xTaskCreate(can_task, "can_task", 2048, NULL, configMAX_PRIORITIES, NULL);
     vTaskDelay(5 / portTICK_PERIOD_MS);
     ESP_LOGI("MAIN", "Setup finished");
 }
