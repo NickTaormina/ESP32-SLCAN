@@ -28,7 +28,7 @@ void tx_task()
 }
 
 // for can messages as a whole
-void rx_task()
+int void rx_task()
 {
     ESP_LOGE("CAN", "CAN task started");
     twai_message_t receiveMsg;
