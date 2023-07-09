@@ -1,74 +1,19 @@
 #include "slcan.h"
 
-#include "hal/usb_serial_jtag_ll.h"
-#include "driver/usb_serial_jtag.h"
-#include "esp_err.h"
-#include "esp_log.h"
-#include "esp_spiffs.h"
-#include "stdio.h"
-#include "string.h"
-
 void slcan_ack()
 {
-    // usb_serial_jtag_write_bytes((const void *)"\r", 1, 10);
     printf("\r");
     fflush(stdout);
 }
 void slcan_nack()
 {
-    // printf("\a");
-    usb_serial_jtag_ll_write_txfifo((uint8_t *)"\a", 1);
-    usb_serial_jtag_ll_txfifo_flush();
-    // fflush(stdout);
+    printf("\a");
+    fflush(stdout);
 }
 
 void slcan_init(void)
 {
     open_can_interface();
-}
-
-// Define rx_buffer for serial in
-static uint8_t rx_store[2 * RX_BUF_SIZE];
-
-// slcan task to process serial commands sent to the device over the USB serial port
-void slcan_task(void *pvParameters)
-{
-
-    int msgLen = 0;
-    int rxStoreLen = 0;
-    ESP_LOGE("slcan", "slcan task started");
-
-    uint8_t *rxbf = (uint8_t *)malloc(512);
-    while (1)
-    {
-        // read the serial port inputs for commands
-
-        msgLen = usb_serial_jtag_read_bytes(rxbf, 512, 0);
-        if (msgLen > 0)
-        {
-            //  store the message in case it is incomplete
-            if (rxStoreLen + msgLen <= (2 * RX_BUF_SIZE))
-            {
-                memcpy(rx_store + rxStoreLen, rxbf, msgLen);
-                rxStoreLen += msgLen;
-                for (int i = 0; i < rxStoreLen; i++)
-                {
-                    if (rx_store[i] == SLCAN_CR)
-                    {
-                        // send the message to be processed
-                        processSlCommand(rx_store);
-                        //   clear the message from the store
-                        memset(rx_store, 0, rxStoreLen);
-                        rxStoreLen = 0;
-                    }
-                }
-            }
-            else
-            {
-            }
-        }
-        vTaskDelay(2 / portTICK_PERIOD_MS);
-    }
 }
 
 void slcan_close(void)
@@ -176,11 +121,10 @@ void setFilter(uint8_t *bytes)
 
 void processSlCommand(uint8_t *bytes)
 {
-    // printf("process sl command: %02X", bytes[0]);
     switch ((char)bytes[0])
     {
     case 'O':
-        if (bytes[1] == '6')
+        if (bytes[1] != '\0' && isdigit((char)bytes[1]))
         {
             setup_speed(bytes[1]);
         }
@@ -215,7 +159,7 @@ void processSlCommand(uint8_t *bytes)
             slcan_nack();
         }
         break;
-    case 's':
+    case 's': // todo: implement this
         if (bytes == NULL)
         {
             printf("\a"); // BELL (Ascii 7) for ERROR

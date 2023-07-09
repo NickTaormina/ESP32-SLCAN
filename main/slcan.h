@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include "esp_log.h"
+#include "esp_log.h"
+#include "driver/usb_serial_jtag.h"
 #include "driver/gpio.h"
 #include "driver/twai.h"
 #include "driver/uart.h"
@@ -9,7 +11,7 @@
 #include "string.h"
 #include "stdlib.h"
 #include "can.h"
-#include "queue_manager.h"
+#include <ctype.h>
 
 #define SLCAN_CR '\r'
 #define SLCAN_BEL '\a'
@@ -29,8 +31,8 @@ int busSpeed;
 
 // rtos
 void slcan_init(void);
-void slcan_task(void *pvParameters);
 
+// slcan functions
 void slcan_ack();
 void slcan_nack();
 void slcan_receiveFrame(twai_message_t message);

@@ -1,7 +1,6 @@
 #ifndef CAN_H
 #define CAN_H
 
-#include "queue_manager.h"
 #include "driver/twai.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
@@ -9,9 +8,6 @@
 
 #define CAN_TX_GPIO GPIO_NUM_9
 #define CAN_RX_GPIO GPIO_NUM_8
-
-// rtos
-void can_task(void *pvParameters);
 
 // interface
 twai_timing_config_t bus_speed; // variable to store the bus speed

@@ -8,7 +8,6 @@
 #include "freertos/queue.h"
 #include "slcan.h"
 #include <stdio.h>
-#include "queue_manager.h"
 #include "can.h"
 #include "hal/usb_serial_jtag_ll.h"
 #include "driver/usb_serial_jtag.h"
@@ -104,37 +103,34 @@ void rx_task()
 
 void app_main()
 {
+    // init the usb driver
     usb_serial_jtag_driver_config_t usb_serial_jtag_driver_config = {
         .rx_buffer_size = 256,
         .tx_buffer_size = 256,
     };
-
     esp_err_t err = usb_serial_jtag_driver_install(&usb_serial_jtag_driver_config);
     if (err != ESP_OK)
     {
         printf("Error installing USB serial JTAG driver: %s\n", esp_err_to_name(err));
     }
     vTaskDelay(20);
+    // init storage
     spiffs_init();
-    char *test = read_spiffs_file_to_buffer("/spiffs/CAN.TXT");
     setvbuf(stdout, NULL, _IONBF, 0);
     setbuf(stdout, NULL);
+
+    // set up queues
     can_send_queue = xQueueCreate(10, 2 * sizeof(twai_message_t));
     can_receive_queue = xQueueCreate(10, 2 * sizeof(twai_message_t));
     serial_in_queue = xQueueCreate(10, 2 * sizeof(serial_message_t));
     serial_out_queue = xQueueCreate(10, 2 * sizeof(serial_message_t));
     vTaskDelay(20);
+
+    // start the usb tasks
     init_usbcomm();
     vTaskDelay(20);
-    // open_can_interface();
 
-    vTaskDelay(1 / portTICK_PERIOD_MS);
-
-    // start the CAN driver
-    vTaskDelay(5 / portTICK_PERIOD_MS);
-    // Create the twai and slcan tasks
-    // xTaskCreate(slcan_task, "slcan_task", 4096, NULL, 1, NULL);
-    vTaskDelay(5 / portTICK_PERIOD_MS);
+    // Create the tx and rx tasks
     xTaskCreate(tx_task, "tx_task", 4096, NULL, configMAX_PRIORITIES, NULL);
     xTaskCreate(rx_task, "rx_task", 4096, NULL, configMAX_PRIORITIES, NULL);
     vTaskDelay(5 / portTICK_PERIOD_MS);
