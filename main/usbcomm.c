@@ -1,11 +1,13 @@
 #include "usbcomm.h"
 #include "slcan.h"
+#include "driver/usb_serial_jtag.h"
+#include "esp_vfs_usb_serial_jtag.h"
 
 void init_usbcomm(void)
 {
 
-    xTaskCreate(usbcomm_rx_task, "usbcomm_rx_task", 3072, NULL, 1, NULL);
-    xTaskCreate(usbcomm_tx_task, "usbcomm_tx_task", 3072, NULL, 1, NULL);
+    xTaskCreate(usbcomm_rx_task, "usbcomm_rx_task", 4096, NULL, configMAX_PRIORITIES, NULL);
+    xTaskCreate(usbcomm_tx_task, "usbcomm_tx_task", 4096, NULL, configMAX_PRIORITIES, NULL);
 }
 
 // task to handle outputting to the serial port
@@ -17,7 +19,7 @@ void usbcomm_tx_task(void *pvParameter)
         serial_message_t txmsg;
         if (xQueueReceive(serial_out_queue, (void *)&txmsg, portMAX_DELAY) == pdTRUE)
         {
-            printf("%s", txmsg.data);
+            printf("%.*s", txmsg.len, txmsg.data);
             flush_output();
         }
     }
@@ -55,6 +57,7 @@ void usbcomm_rx_task(void *pvParameter)
                         // Send the message to be processed
                         memcpy(rxmsg.data, rx_store + nextMsgIndex, i - nextMsgIndex);
                         rxmsg.len = i - nextMsgIndex;
+                        // append_spiffs_file("/spiffs/SENDA.TXT", (char *)rxmsg.data);
                         xQueueSend(serial_in_queue, (void *)&rxmsg, portMAX_DELAY);
                         // Update the next message index
                         nextMsgIndex = i + 1;
@@ -76,7 +79,10 @@ void usbcomm_rx_task(void *pvParameter)
             {
             }
         }
-        vTaskDelay(2);
+        else
+        {
+            vTaskDelay(1 / portTICK_PERIOD_MS);
+        }
     }
 }
 

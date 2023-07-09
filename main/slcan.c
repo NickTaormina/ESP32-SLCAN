@@ -54,6 +54,10 @@ int asciiToHex(uint8_t ascii_hex_digit)
 // parses and sends a frame given message from slcan
 void send_can(uint8_t *bytes)
 {
+    if (bytes == NULL)
+    {
+        return;
+    }
     twai_message_t msg;
     uint32_t frameID = 0;
     // gets the frame id from the ascii hex codes
@@ -70,7 +74,7 @@ void send_can(uint8_t *bytes)
         int frameLen = asciiToHex(bytes[SLCAN_FRAME_LEN_OFFSET]);
 
         // checks if the frame is a standard frame
-        if (frameLen <= 8)
+        if (frameLen <= 8 && frameLen > 0)
         {
             msg.data_length_code = frameLen;
             // gets the data from the ascii hex codes
@@ -83,7 +87,8 @@ void send_can(uint8_t *bytes)
             if (write_can_message(msg) != true)
             {
                 // print noack or something
-                ESP_LOGE("SLCAN", "Failed to send CAN message");
+                slcan_nack();
+                // ESP_LOGE("SLCAN", "Failed to send CAN message");
             };
         }
         else

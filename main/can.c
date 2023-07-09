@@ -19,6 +19,7 @@ bool open_can_interface()
     }
     twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT(CAN_TX_GPIO, CAN_RX_GPIO, TWAI_MODE_NO_ACK);
     g_config.rx_queue_len = 500;
+    g_config.tx_queue_len = 10;
     twai_timing_config_t bspeed = TWAI_TIMING_CONFIG_500KBITS();
     twai_filter_config_t f_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
     //  Initialize CAN module
@@ -84,17 +85,39 @@ bool setup_speed(char speed_code)
     }
     return speed_set;
 }
-
+#include "flash_handler.h"
 // sends the message to the TWAI
 bool write_can_message(twai_message_t message)
 {
-    if (twai_transmit(&message, 10) == ESP_OK)
+    esp_err_t result = twai_transmit(&message, pdMS_TO_TICKS(100));
+
+    if (result == ESP_OK)
     {
         return true;
     }
     else
     {
-        ESP_LOGE("CAN", "Failed to send CAN message");
+        char *error_message;
+        switch (result)
+        {
+        case ESP_ERR_INVALID_ARG:
+            error_message = "Arguments are invalid";
+            break;
+        case ESP_ERR_NOT_SUPPORTED:
+            error_message = "Transmission is not supported";
+            break;
+        case ESP_ERR_TIMEOUT:
+            error_message = "Transmission timed out";
+            break;
+        case ESP_FAIL:
+            error_message = "Transmission failed";
+            break;
+        default:
+            error_message = "Unknown error occurred";
+            break;
+        }
+        // append_spiffs_file("/spiffs/SENDA.TXT", error_message);
+        //  ESP_LOGE("CAN", "Failed to send CAN message: %s\n", error_message);
         return false;
     }
 }
