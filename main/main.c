@@ -74,15 +74,15 @@ void rx_task()
                 }
                 else
                 {
-                    serial_message_t txmsg;
-                    txmsg.len = len;
-                    memcpy(txmsg.data, buffer, len);
-                    if (xQueueSend(serial_out_queue, &txmsg, portMAX_DELAY) != pdPASS)
+                    // serial_message_t txmsg;
+                    // txmsg.len = len;
+                    // memcpy(txmsg.data, buffer, len);
+                    /*if (xQueueSend(serial_out_queue, &txmsg, portMAX_DELAY) != pdPASS)
                     {
                         // ESP_LOGE("CAN", "Failed to send message to the queue");
                         //  Handle queue send failure, such as logging an error message or taking recovery action
-                    }
-                    // printf("%s", buffer);
+                    }*/
+                    printf("%s", buffer);
                 }
             }
         }
@@ -124,7 +124,7 @@ void app_main()
     vTaskDelay(5);
 
     // Create the tx and rx tasks
-    xTaskCreate(tx_task, "tx_task", 4096, NULL, configMAX_PRIORITIES, NULL);
+    xTaskCreate(tx_task, "tx_task", 4096, NULL, configMAX_PRIORITIES - 1, NULL);
     xTaskCreate(rx_task, "rx_task", 4096, NULL, configMAX_PRIORITIES, NULL);
     ESP_LOGI("MAIN", "Setup finished");
 }
