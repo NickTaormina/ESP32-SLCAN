@@ -7,7 +7,7 @@ void init_usbcomm(void)
 {
 
     xTaskCreate(usbcomm_rx_task, "usbcomm_rx_task", 4096, NULL, configMAX_PRIORITIES, NULL);
-    xTaskCreate(usbcomm_tx_task, "usbcomm_tx_task", 4096, NULL, configMAX_PRIORITIES, NULL);
+    //  xTaskCreate(usbcomm_tx_task, "usbcomm_tx_task", 4096, NULL, configMAX_PRIORITIES, NULL);
 }
 
 // task to handle outputting to the serial port
@@ -39,7 +39,7 @@ void usbcomm_rx_task(void *pvParameter)
     while (1)
     {
         // read the serial port inputs for commands
-        msgLen = usb_serial_jtag_read_bytes(rxbf, 64, 0);
+        msgLen = usb_serial_jtag_read_bytes(rxbf, 64, 1);
         if (msgLen > 0)
         {
             // Define a variable to keep track of the starting index of the next message
@@ -77,6 +77,7 @@ void usbcomm_rx_task(void *pvParameter)
 
             else
             {
+                vTaskDelay(1 / portTICK_PERIOD_MS);
             }
         }
         else

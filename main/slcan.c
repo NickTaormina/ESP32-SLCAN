@@ -190,6 +190,9 @@ void processSlCommand(uint8_t *bytes)
                btr0, btr1, bitrate);
         printf("\r\n"); // CR (Ascii 13) for OK
         break;
+    case 'z':
+        ESP_LOGE("SLCAN", "debug");
+        break;
         /*
         case 'W':
         break;

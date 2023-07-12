@@ -20,22 +20,27 @@ void tx_task()
     serial_message_t buffer;
     while (1)
     {
-        if (xQueueReceive(serial_in_queue, &buffer, portMAX_DELAY) == pdTRUE)
+        if (xQueueReceive(serial_in_queue, &buffer, 1) == pdTRUE)
         {
             processSlCommand(buffer.data);
+        }
+        else
+        {
+            vTaskDelay(1 / portTICK_RATE_MS);
         }
     }
 }
 
 // for can messages as a whole
-int void rx_task()
+void rx_task()
 {
     ESP_LOGE("CAN", "CAN task started");
     twai_message_t receiveMsg;
+    twai_status_info_t test;
 
     while (1)
     {
-        twai_status_info_t test;
+
         twai_get_status_info(&test);
         if (test.state == TWAI_STATE_RUNNING)
         {
@@ -53,42 +58,53 @@ int void rx_task()
     while (1)
     {
         // Receive CAN messages
-
-        if (twai_receive(&receiveMsg, portMAX_DELAY) == ESP_OK)
+        twai_get_status_info(&test);
+        if (test.state == TWAI_STATE_RUNNING)
         {
-            // Process the received message and send it to the queue
-            if (1)
+            if (twai_receive(&receiveMsg, 10) == ESP_OK)
             {
-                // Write the data into the buffer using snprintf
-                int len = snprintf((char *)buffer, sizeof(buffer),
-                                   "t%03X%01X%02X%02X%02X%02X%02X%02X%02X%02X\r",
-                                   receiveMsg.identifier, receiveMsg.data_length_code,
-                                   receiveMsg.data[0], receiveMsg.data[1], receiveMsg.data[2],
-                                   receiveMsg.data[3], receiveMsg.data[4], receiveMsg.data[5],
-                                   receiveMsg.data[6], receiveMsg.data[7]);
-
-                if (len >= sizeof(buffer) || len > 30)
+                // Process the received message and send it to the queue
+                if (receiveMsg.data_length_code > 0 && receiveMsg.data_length_code <= 8)
                 {
-                    ESP_LOGE("CAN", "Buffer overflow detected");
-                    // Handle buffer overflow error, such as logging an error message
-                }
-                else
-                {
-                    // serial_message_t txmsg;
-                    // txmsg.len = len;
-                    // memcpy(txmsg.data, buffer, len);
-                    /*if (xQueueSend(serial_out_queue, &txmsg, portMAX_DELAY) != pdPASS)
+                    // Write the data into the buffer using snprintf
+                    /*int len = snprintf((char *)buffer, sizeof(buffer),
+                                       "t%03X%01X%02X%02X%02X%02X%02X%02X%02X%02X\r",
+                                       receiveMsg.identifier, receiveMsg.data_length_code,
+                                       receiveMsg.data[0], receiveMsg.data[1], receiveMsg.data[2],
+                                       receiveMsg.data[3], receiveMsg.data[4], receiveMsg.data[5],
+                                       receiveMsg.data[6], receiveMsg.data[7]);*/
+                    int len = snprintf((char *)buffer, sizeof(buffer),
+                                       "t%03X%01X", receiveMsg.identifier, receiveMsg.data_length_code);
+                    for (int i = 0; i < receiveMsg.data_length_code; i++)
                     {
-                        // ESP_LOGE("CAN", "Failed to send message to the queue");
-                        //  Handle queue send failure, such as logging an error message or taking recovery action
-                    }*/
-                    printf("%s", buffer);
+                        len += snprintf((char *)buffer + len, sizeof(buffer) - len, "%02X", receiveMsg.data[i]);
+                    }
+
+                    if (len >= sizeof(buffer) || len > 30)
+                    {
+                        ESP_LOGE("CAN", "Buffer overflow detected");
+                        // Handle buffer overflow error, such as logging an error message
+                    }
+                    else
+                    {
+                        // serial_message_t txmsg;
+                        // txmsg.len = len;
+                        // memcpy(txmsg.data, buffer, len);
+                        /*if (xQueueSend(serial_out_queue, &txmsg, portMAX_DELAY) != pdPASS)
+                        {
+                            // ESP_LOGE("CAN", "Failed to send message to the queue");
+                            //  Handle queue send failure, such as logging an error message or taking recovery action
+                        }*/
+                        printf("%s\r", buffer);
+                        flush_output();
+                    }
                 }
             }
-        }
-        else
-        {
-            // Handle receive failure, such as logging an error message or taking recovery action
+            else
+            {
+                ESP_LOGE("CAN", "Failed to receive message");
+                // Handle receive failure, such as logging an error message or taking recovery action
+            }
         }
     }
 }
