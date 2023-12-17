@@ -23,6 +23,7 @@
 #define SLCAN_FRAME_DATA_OFFSET 5
 
 #define RX_BUF_SIZE 256
+#define EXPECTED_MIN_LENGTH 5
 
 extern TaskHandle_t readHandle;
 

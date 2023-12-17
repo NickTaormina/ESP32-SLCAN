@@ -54,16 +54,23 @@ int asciiToHex(uint8_t ascii_hex_digit)
 // parses and sends a frame given message from slcan
 void send_can(uint8_t *bytes)
 {
-    if (bytes == NULL)
+    if (bytes == NULL || strlen((char *)bytes) < EXPECTED_MIN_LENGTH)
     {
+        slcan_nack();
         return;
     }
+
     twai_message_t msg;
     uint32_t frameID = 0;
-    // gets the frame id from the ascii hex codes
     for (int i = 0; i < 3; i++)
     {
-        frameID = (frameID << 4) | (asciiToHex(bytes[i + 1]));
+        int hexDigit = asciiToHex(bytes[i + 1]);
+        if (hexDigit == -1)
+        {
+            slcan_nack();
+            return; // Handle invalid hex digit
+        }
+        frameID = (frameID << 4) | hexDigit;
     }
     if (frameID != 0)
     {
@@ -126,6 +133,11 @@ void setFilter(uint8_t *bytes)
 
 void processSlCommand(uint8_t *bytes)
 {
+    if (bytes == NULL)
+    {
+        slcan_nack();
+        return;
+    }
     switch ((char)bytes[0])
     {
     case 'O':
